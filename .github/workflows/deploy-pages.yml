@@ -23,11 +23,20 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - name: Verify Pages enablement token
+        env:
+          PAGES_ADMIN_TOKEN: ${{ secrets.PAGES_ADMIN_TOKEN }}
+        run: |
+          if [ -z "$PAGES_ADMIN_TOKEN" ]; then
+            echo "::error::Add a PAGES_ADMIN_TOKEN repository secret with Administration: write permission so the workflow can enable GitHub Pages."
+            exit 1
+          fi
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
         with:
-          # Create the Pages site on the first deployment when it has not yet
-          # been enabled in the repository settings.
+          # Page creation requires repository-administration permission. The
+          # workflow GITHUB_TOKEN cannot grant itself that permission.
+          token: ${{ secrets.PAGES_ADMIN_TOKEN }}
           enablement: true
       - name: Build static application
         run: npm run build
