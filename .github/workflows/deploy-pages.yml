@@ -1,0 +1,39 @@
+name: Publish simulator
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Build static application
+        run: npm run build
+      - name: Publish site
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./dist
+          force_orphan: true
+      - name: Show Pages activation instructions
+        run: |
+          {
+            echo "## Published to the gh-pages branch"
+            echo
+            echo "The site files are ready. If the public URL shows **Site not found**,"
+            echo "open [Settings → Pages](https://github.com/${GITHUB_REPOSITORY}/settings/pages),"
+            echo "choose **Deploy from a branch**, select **gh-pages** and **/(root)**, then save."
+            echo "This one-time repository setting cannot be changed by GITHUB_TOKEN."
+          } >> "$GITHUB_STEP_SUMMARY"
