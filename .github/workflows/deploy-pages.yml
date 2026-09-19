@@ -25,6 +25,10 @@ jobs:
         uses: actions/checkout@v4
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
+        with:
+          # Create the Pages site on the first deployment when it has not yet
+          # been enabled in the repository settings.
+          enablement: true
       - name: Build static application
         run: npm run build
       - name: Upload Pages artifact

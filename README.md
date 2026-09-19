@@ -22,4 +22,6 @@ Then open <http://localhost:4173>.
 ## Deployment
 
 Every push to `main` publishes the latest static build to GitHub Pages. The
-workflow can also be run manually from the **Actions** tab.
+workflow can also be run manually from the **Actions** tab. On its first run,
+the workflow enables GitHub Pages for the repository automatically, so no
+separate Pages source configuration is required.
