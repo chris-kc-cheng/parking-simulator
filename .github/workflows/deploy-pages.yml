@@ -1,0 +1,49 @@
+name: Deploy simulator to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Verify Pages enablement token
+        env:
+          PAGES_ADMIN_TOKEN: ${{ secrets.PAGES_ADMIN_TOKEN }}
+        run: |
+          if [ -z "$PAGES_ADMIN_TOKEN" ]; then
+            echo "::error::Add a PAGES_ADMIN_TOKEN repository secret with Administration: write permission so the workflow can enable GitHub Pages."
+            exit 1
+          fi
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          # Page creation requires repository-administration permission. The
+          # workflow GITHUB_TOKEN cannot grant itself that permission.
+          token: ${{ secrets.PAGES_ADMIN_TOKEN }}
+          enablement: true
+      - name: Build static application
+        run: npm run build
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
