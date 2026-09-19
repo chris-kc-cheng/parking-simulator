@@ -1,16 +1,17 @@
-const icon = name => `<span class="ico">${({ sound: '◖))', settings: '⚙', power: '◉', camera: '▣', eye: '◉', left: '‹', right: '›', reset: '↻', info: 'i' })[name]}</span>`;
+const icon = name => `<span class="ico">${({ settings: '⚙', camera: '▣', eye: '◉', left: '‹', right: '›', reset: '↻', info: 'i' })[name]}</span>`;
 
 document.querySelector('#root').innerHTML = `<main>
-  <header><div class="brand"><div class="brandmark"><span></span></div><div><b>PARKING SIMULATOR</b></div></div><div class="step">LESSON 01 <i></i> <strong id="lesson">REVERSE PARK</strong></div><div class="topActions"><button id="sound">${icon('sound')}</button><button id="settings" aria-label="Open settings">${icon('settings')}</button><button class="exit">${icon('power')} EXIT</button></div></header>
+  <header><div class="brand"><div class="brandmark"><span></span></div><div><b>PARKING SIMULATOR</b></div></div><nav class="scenarioTabs" aria-label="Choose a parking scenario"><button class="active">Parking lot</button><button>Street</button></nav><div class="topActions"><button id="settings" aria-label="Open settings">${icon('settings')}</button></div></header>
   <section class="cockpit">
+    <div class="mirrorMount left" aria-hidden="true"></div><div class="mirrorMount right" aria-hidden="true"></div>
     <div class="mirror left"><canvas data-view="leftMirror"></canvas><span>OBJECTS IN MIRROR ARE CLOSER THAN THEY APPEAR</span></div>
     <div class="rearMirror"><canvas data-view="rearMirror"></canvas></div>
     <div class="mirror right"><canvas data-view="rightMirror"></canvas></div>
-    <div class="windshield"><canvas data-view="front"></canvas><div class="scenarioTabs"><button class="active">Reverse park</button><button>Front-in</button><button>Parallel</button></div><div class="impact" hidden>OBSTACLE — VEHICLE STOPPED</div></div>
+    <div class="windshield"><canvas data-view="front"></canvas><div class="impact" hidden>OBSTACLE — VEHICLE STOPPED</div></div>
     <aside class="miniViews"><div class="monitor" id="camera"><div class="monitorTitle">${icon('camera')} REAR CAMERA <button class="hide">×</button></div><div class="feed"><canvas data-view="rearCamera"></canvas></div></div><div class="monitor" id="bird"><div class="monitorTitle">${icon('eye')} BIRD'S-EYE <button class="hide">×</button></div><div class="feed bird"><canvas data-view="bird"></canvas></div></div><div class="restore"></div></aside>
-    <div class="dash"><div class="wheel"><div></div><b>P</b></div><div class="cluster"><small>SPEED</small><strong>00</strong><span>km/h</span></div><div class="gear">${['P', 'R', 'N', 'D'].map(g => `<button class="${g === 'P' ? 'active' : ''}">${g}</button>`).join('')}</div></div>
+    <div class="dash"><div class="wheel"><div class="wheelSpoke leftSpoke"></div><div class="wheelSpoke rightSpoke"></div><div class="wheelSpoke lowerSpoke"></div><b></b></div><div class="cluster"><small>SPEED</small><strong>00</strong><span>km/h</span></div><div class="gear">${['P', 'R', 'N', 'D'].map(g => `<button class="${g === 'P' ? 'active' : ''}">${g}</button>`).join('')}</div></div>
   </section>
-  <footer><div class="hint">${icon('info')}<span><b>YOUR GOAL</b> Park fully inside the highlighted yellow bay without touching an obstacle.</span></div><div class="controls"><button data-key="ArrowLeft">${icon('left')}</button><div class="keygroup"><button data-key="ArrowUp">↑</button><small>DRIVE</small></div><div class="keygroup"><button data-key="ArrowDown">↓</button><small>REVERSE</small></div><button data-key="ArrowRight">${icon('right')}</button><button class="reset">${icon('reset')} RESET</button></div></footer>
+  <footer><div class="hint">${icon('info')}<span><b>YOUR GOAL</b> <span id="goalText">Park front-in or back-in inside the highlighted bay without touching another vehicle.</span></span></div><div class="controls"><button data-key="ArrowLeft">${icon('left')}</button><div class="keygroup"><button data-key="ArrowUp">↑</button><small>DRIVE</small></div><div class="keygroup"><button data-key="ArrowDown">↓</button><small>REVERSE</small></div><button data-key="ArrowRight">${icon('right')}</button><button class="reset">${icon('reset')} RESET</button></div></footer>
   <div class="modalBackdrop" hidden><div class="modal"><button class="close">×</button><h2>Simulation settings</h2><p>Fine-tune the optical behavior of your driving aids.</p><label>Mirror fisheye <b><output id="fishValue">16</output>%</b></label><input id="fish" type="range" value="16" min="0" max="40"><label>Camera field of view <b><output id="fovValue">110</output>°</b></label><input id="fov" type="range" value="110" min="75" max="135"><label>Driver eye height <b><output id="heightValue">1.25</output> m</b></label><input id="height" type="range" value="1.25" min="0.8" max="1.8" step="0.05"><button class="done">APPLY SETTINGS</button></div></div>
 </main>`;
 
@@ -18,19 +19,28 @@ document.querySelector('#root').innerHTML = `<main>
 const state = { x: 0, z: 8, heading: 0, speed: 0, steer: 0, gear: 'P', fisheye: 16, fov: 110, eyeHeight: 1.25, impactUntil: 0 };
 const keys = {};
 const CAR = { width: 1.82, length: 4.45, height: 1.48, wheelbase: 2.7, maxSteer: 32 * Math.PI / 180 };
-const parkedCars = [
-  { x: -6, z: -25, heading: 0, color: '#202326' }, { x: -2, z: -25, heading: 0, color: '#e7e2d7' },
-  { x: 2, z: -25, heading: 0, color: '#566977' }, { x: 6, z: -25, heading: 0, color: '#9a3f38' },
-  { x: -6, z: -15, heading: 0, color: '#eee9dd' }, { x: -2, z: -15, heading: 0, color: '#34383a' },
-  { x: 6, z: -15, heading: 0, color: '#bec5bd' }, { x: 2, z: -5, heading: 0, color: '#315268' },
-  { x: 6, z: -5, heading: 0, color: '#17191b' }
+const BAY_WIDTH = 2.7;
+const BAY = { width: BAY_WIDTH, length: 5.5, rows: [-27, -15, -3], columns: [-1.5, -.5, .5, 1.5].map(slot => slot * BAY_WIDTH) };
+const lotCars = [
+  { x: BAY.columns[0], z: -27, heading: 0, color: '#202326', type: 'van' }, { x: BAY.columns[1], z: -27, heading: 0, color: '#e7e2d7' },
+  { x: BAY.columns[2], z: -27, heading: 0, color: '#566977' }, { x: BAY.columns[3], z: -27, heading: 0, color: '#9a3f38' },
+  { x: BAY.columns[0], z: -15, heading: 0, color: '#eee9dd' }, { x: BAY.columns[1], z: -15, heading: 0, color: '#34383a' },
+  { x: BAY.columns[3], z: -15, heading: 0, color: '#bec5bd', type: 'truck' }, { x: BAY.columns[2], z: -3, heading: 0, color: '#315268' },
+  { x: BAY.columns[3], z: -3, heading: 0, color: '#17191b' }
 ];
+const streetCars = [
+  { x: 6, z: -39, heading: 0, color: '#465b68', type: 'van' },
+  { x: 6, z: -27, heading: 0, color: '#a34d42' },
+  { x: 6, z: -15, heading: 0, color: '#d9d3c5' },
+  { x: 6, z: -3, heading: 0, color: '#334747' }
+];
+const STREET = { curbX: 7.4, gapLength: 12 - CAR.length, width: 2.5 };
 const scenarios = {
-  'Reverse park': { x: 0, z: 8, heading: 0, target: { x: 4, z: -15, heading: 0 } },
-  'Front-in': { x: 0, z: 8, heading: 0, target: { x: -4, z: -5, heading: 0 } },
-  'Parallel': { x: 0, z: 5, heading: 0, target: { x: -6, z: -20, heading: 0 } }
+  'Parking lot': { x: 0, z: 8, heading: 0, target: { x: BAY.columns[2], z: -15, heading: 0 }, cars: lotCars },
+  'Street': { x: 2.5, z: 8, heading: 0, target: { x: 6, z: -21, heading: 0 }, cars: streetCars }
 };
-let activeScenario = 'Reverse park';
+let activeScenario = 'Parking lot';
+const parkedCars = () => scenarios[activeScenario].cars;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
 function reset() {
@@ -50,7 +60,7 @@ function localPoint(x, z, cameraYaw = 0, mountForward = 0) {
 }
 
 function vehicleCorners(vehicle, margin = 0) {
-  const hw = (CAR.width + margin) / 2, hl = (CAR.length + margin) / 2;
+  const size = vehicleSize(vehicle), hw = (size.width + margin) / 2, hl = (size.length + margin) / 2;
   return [[-hw, -hl], [hw, -hl], [hw, hl], [-hw, hl]].map(([x, z]) => ({
     x: vehicle.x + x * Math.cos(vehicle.heading) + z * Math.sin(vehicle.heading),
     z: vehicle.z + x * Math.sin(vehicle.heading) - z * Math.cos(vehicle.heading)
@@ -68,9 +78,14 @@ function polygonsOverlap(a, b) {
 }
 
 function collides(pose) {
-  const player = vehicleCorners(pose, .08);
-  if (player.some(p => Math.abs(p.x) > 9 || p.z < -31 || p.z > 13)) return true;
-  return parkedCars.some(car => polygonsOverlap(player, vehicleCorners(car, .12)));
+  const player = vehicleCorners(pose);
+  return parkedCars().some(car => polygonsOverlap(player, vehicleCorners(car)));
+}
+
+function vehicleSize(vehicle) {
+  if (vehicle.type === 'van') return { width: 2.05, length: 5.2, height: 2.25 };
+  if (vehicle.type === 'truck') return { width: 2.1, length: 5.35, height: 2.15 };
+  return CAR;
 }
 
 function projectedPath(direction, steps = 30) {
@@ -95,11 +110,15 @@ function projectedTracks(direction) {
   })));
 }
 
-function drawTopCar(ctx, x, y, scale, heading, color, player = false, steer = 0) {
-  ctx.save(); ctx.translate(x, y); ctx.rotate(-heading); ctx.scale(scale, scale);
-  ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(-CAR.width / 2, -CAR.length / 2, CAR.width, CAR.length, .35); ctx.fill();
-  ctx.fillStyle = '#617176'; ctx.fillRect(-.72, -.78, 1.44, 1.55);
-  const wheels = [{ x: -.96, z: -1.35, front: true }, { x: .96, z: -1.35, front: true }, { x: -.96, z: 1.35 }, { x: .96, z: 1.35 }];
+function drawTopCar(ctx, x, y, scale, heading, color, player = false, steer = 0, type = 'car') {
+  const size = vehicleSize({ type });
+  ctx.save(); ctx.translate(x, y); ctx.rotate(heading); ctx.scale(scale, scale);
+  ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(-size.width / 2, -size.length / 2, size.width, size.length, .3); ctx.fill();
+  ctx.fillStyle = '#243943';
+  if (type === 'truck') { ctx.fillRect(-.78, -1.72, 1.56, 1.05); ctx.fillStyle = '#303839'; ctx.fillRect(-.83, -.25, 1.66, 2.65); }
+  else { ctx.fillRect(-size.width * .4, -size.length * .22, size.width * .8, type === 'van' ? 3.2 : 2.05); ctx.fillStyle = '#9bb2b8'; ctx.fillRect(-size.width * .37, -size.length * .22, size.width * .74, .32); }
+  ctx.fillStyle = '#20282b'; for (const side of [-1, 1]) ctx.fillRect(side * (size.width / 2 + .04) - .11, -size.length * .26, .22, .25);
+  const wheels = [{ x: -size.width / 2 - .05, z: -size.length * .3, front: true }, { x: size.width / 2 + .05, z: -size.length * .3, front: true }, { x: -size.width / 2 - .05, z: size.length * .3 }, { x: size.width / 2 + .05, z: size.length * .3 }];
   wheels.forEach(w => { ctx.save(); ctx.translate(w.x, w.z); if (w.front) ctx.rotate(steer); ctx.fillStyle = '#111'; ctx.fillRect(-.13, -.43, .26, .86); ctx.restore(); });
   if (player) { ctx.fillStyle = '#d9be8e'; ctx.fillRect(-.14, -2.32, .28, .18); }
   ctx.restore();
@@ -121,14 +140,31 @@ function drawPerspective(canvas, view) {
   const sky = ctx.createLinearGradient(0, 0, 0, horizon); sky.addColorStop(0, '#83939a'); sky.addColorStop(1, '#d7d2c6'); ctx.fillStyle = sky; ctx.fillRect(0, 0, w, horizon);
   ctx.fillStyle = '#717870'; ctx.fillRect(0, horizon, w, h - horizon);
   const focal = (w / 2) / Math.tan(camera.fov * Math.PI / 360);
-  const project3d = (x, z, height = 0) => { const p = localPoint(x, z, camera.yaw, camera.mount); if (p.y < .04) return null; let sx = w / 2 + p.x / p.y * focal; if (camera.mirror) sx = w - sx; const distortion = 1 + state.fisheye / 250 * Math.pow(Math.abs(sx - w / 2) / (w / 2), 2); sx = w / 2 + (sx - w / 2) * distortion; return { x: sx, y: horizon + focal * (state.eyeHeight - height) / p.y, depth: p.y }; };
+  const distortionAmount = camera.mirror ? state.fisheye : 0;
+  const project3d = (x, z, height = 0) => { const p = localPoint(x, z, camera.yaw, camera.mount); if (p.y < .04) return null; let sx = w / 2 + p.x / p.y * focal; if (camera.mirror) sx = w - sx; const distortion = 1 + distortionAmount / 250 * Math.pow(Math.abs(sx - w / 2) / (w / 2), 2); sx = w / 2 + (sx - w / 2) * distortion; return { x: sx, y: horizon + focal * (state.eyeHeight - height) / p.y, depth: p.y }; };
   const project = (x, z) => project3d(x, z, 0);
   // Parking grid is projected from the same world coordinates as the bird's-eye view.
   ctx.lineWidth = 2; ctx.strokeStyle = '#edbd4e';
   const groundLine = (ax, az, bx, bz) => { ctx.beginPath(); let drawing = false; for (let i = 0; i <= 40; i++) { const t = i / 40, p = project(ax + (bx - ax) * t, az + (bz - az) * t); if (!p) { drawing = false; continue; } if (!drawing) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); drawing = true; } ctx.stroke(); };
-  for (const x of [-7, -5, -3, -1, 1, 3, 5, 7]) for (let z = -30; z <= 10; z += 10) groundLine(x, z, x, z + 8);
-  for (let z = -30; z <= 10; z += 10) groundLine(-7, z, 7, z);
-  const target = scenarios[activeScenario].target, ta = project(target.x - 1, target.z), tb = project(target.x + 1, target.z); if (ta && tb) { ctx.strokeStyle = '#ffe393'; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(ta.x, ta.y); ctx.lineTo(tb.x, tb.y); ctx.stroke(); }
+  if (activeScenario === 'Parking lot') for (const z of BAY.rows) {
+    const near = z + BAY.length / 2, far = z - BAY.length / 2;
+    const left = BAY.columns[0] - BAY.width / 2, right = BAY.columns.at(-1) + BAY.width / 2;
+    for (let i = 0; i <= BAY.columns.length; i++) {
+      const x = left + i * BAY.width;
+      groundLine(x, near, x, far);
+    }
+    groundLine(left, near, right, near); groundLine(left, far, right, far);
+  }
+  if (activeScenario === 'Street') {
+    ctx.strokeStyle = '#d2cdc0'; ctx.lineWidth = 7;
+    groundLine(STREET.curbX, -48, STREET.curbX, 18);
+  }
+  const target = scenarios[activeScenario].target;
+  ctx.strokeStyle = '#ffe393'; ctx.lineWidth = 4;
+  const targetWidth = activeScenario === 'Street' ? STREET.width : BAY.width;
+  const targetLength = activeScenario === 'Street' ? STREET.gapLength : BAY.length;
+  const left = target.x - targetWidth / 2, right = target.x + targetWidth / 2, near = target.z + targetLength / 2, far = target.z - targetLength / 2;
+  groundLine(left, near, right, near); groundLine(left, near, left, far); groundLine(right, near, right, far); groundLine(left, far, right, far);
   if (camera.path) {
     ctx.strokeStyle = camera.path > 0 ? '#63d67a' : '#ed5f59'; ctx.lineWidth = 3; ctx.setLineDash([7, 5]);
     projectedTracks(camera.path).forEach(path => { ctx.beginPath(); let begun = false; path.forEach(p => { const q = project(p.x, p.z); if (q) { begun ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); begun = true; } }); ctx.stroke(); });
@@ -137,26 +173,70 @@ function drawPerspective(canvas, view) {
   const drawProjectedCar = car => {
     // Project the real 1.82 m × 4.45 m × 1.48 m vehicle box. In particular,
     // the nearest bumper—not the car center—determines its apparent size.
-    const hw = CAR.width / 2, hl = CAR.length / 2;
-    const footprint = [[-hw, -hl], [hw, -hl], [hw, hl], [-hw, hl]].map(([side, forward]) => ({
-      x: car.x + side * Math.cos(car.heading) + forward * Math.sin(car.heading),
-      z: car.z + side * Math.sin(car.heading) - forward * Math.cos(car.heading)
-    }));
-    const bottom = footprint.map(p => project3d(p.x, p.z, 0));
-    const top = footprint.map(p => project3d(p.x, p.z, CAR.height));
-    if (bottom.some(p => !p) || top.some(p => !p)) return;
-    const polygon = (points, fill) => { ctx.fillStyle = fill; ctx.beginPath(); points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath(); ctx.fill(); };
-    const faces = [0, 1, 2, 3].map(i => ({
-      points: [bottom[i], bottom[(i + 1) % 4], top[(i + 1) % 4], top[i]],
-      depth: (bottom[i].depth + bottom[(i + 1) % 4].depth) / 2
-    })).sort((a, b) => b.depth - a.depth);
-    faces.forEach((face, index) => polygon(face.points, index % 2 ? car.color : '#30383b'));
-    polygon(top, car.color);
-    // A roof-sized glass panel retains orientation as the vehicle turns.
-    const roofCenter = top.reduce((sum, p) => ({ x: sum.x + p.x / 4, y: sum.y + p.y / 4 }), { x: 0, y: 0 });
-    ctx.fillStyle = '#8fa8ad'; ctx.beginPath(); ctx.ellipse(roofCenter.x, roofCenter.y, Math.max(3, Math.abs(top[1].x - top[0].x) * .27), Math.max(2, Math.abs(bottom[0].y - top[0].y) * .12), 0, 0, Math.PI * 2); ctx.fill();
+    const size = vehicleSize(car), hw = size.width / 2, hl = size.length / 2;
+    const point = (side, forward, height) => {
+      const x = car.x + side * Math.cos(car.heading) + forward * Math.sin(car.heading);
+      const z = car.z + side * Math.sin(car.heading) - forward * Math.cos(car.heading);
+      return { ...localPoint(x, z, camera.yaw, camera.mount), height };
+    };
+    const ring = (width, front, rear, height) => [[-width / 2, front], [width / 2, front], [width / 2, rear], [-width / 2, rear]].map(([side, forward]) => point(side, forward, height));
+    // Clip each face against the camera's near plane. A nearby car can straddle
+    // the plane, so rejecting the whole box makes it disappear at close range.
+    const bottom = ring(size.width, hl, -hl, 0);
+    const bodyTop = ring(size.width, hl, -hl, car.type === 'truck' ? .95 : .72);
+    const cabinFront = car.type === 'truck' ? hl - .3 : hl - .55;
+    const cabinRear = car.type === 'truck' ? .15 : car.type === 'van' ? -hl + .25 : -hl + .62;
+    const cabinBase = ring(size.width * .84, cabinFront, cabinRear, .72);
+    const roof = ring(size.width * .8, cabinFront - .28, cabinRear + .2, size.height);
+    const near = .3;
+    const clipFace = vertices => {
+      const clipped = [];
+      vertices.forEach((current, i) => {
+        const previous = vertices[(i + vertices.length - 1) % vertices.length];
+        const currentInside = current.y >= near, previousInside = previous.y >= near;
+        if (currentInside !== previousInside) {
+          const t = (near - previous.y) / (current.y - previous.y);
+          clipped.push({ x: previous.x + (current.x - previous.x) * t, y: near, height: previous.height + (current.height - previous.height) * t });
+        }
+        if (currentInside) clipped.push(current);
+      });
+      return clipped;
+    };
+    const screenPoint = p => {
+      let sx = w / 2 + p.x / p.y * focal;
+      if (camera.mirror) sx = w - sx;
+      const distortion = 1 + distortionAmount / 250 * Math.pow(Math.abs(sx - w / 2) / (w / 2), 2);
+      return { x: w / 2 + (sx - w / 2) * distortion, y: horizon + focal * (state.eyeHeight - p.height) / p.y };
+    };
+    const polygon = (vertices, fill) => {
+      const points = clipFace(vertices).map(screenPoint);
+      if (points.length < 3) return;
+      ctx.fillStyle = fill; ctx.beginPath(); points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath(); ctx.fill();
+    };
+    const faces = (lower, upper) => [0, 1, 2, 3].map(i => ({ i, points: [lower[i], lower[(i + 1) % 4], upper[(i + 1) % 4], upper[i]], depth: (lower[i].y + lower[(i + 1) % 4].y) / 2 })).sort((a, b) => b.depth - a.depth);
+    faces(bottom, bodyTop).forEach(face => polygon(face.points, face.i % 2 ? car.color : '#3b4445'));
+    polygon(bodyTop, car.color);
+    faces(cabinBase, roof).forEach(face => {
+      polygon(face.points, car.color);
+      const glass = face.points.map((p, i) => ({ ...p, height: p.height + (i < 2 ? .13 : -.12) }));
+      polygon(glass, face.i === 0 ? '#8eabb5' : '#304b58');
+    });
+    polygon(roof, car.color);
+    for (const side of [-1, 1]) {
+      const x = side * (hw + .1), forward = cabinFront - .12;
+      polygon([point(x - .13, forward + .15, 1.02), point(x + .13, forward + .15, 1.02), point(x + .13, forward - .15, 1.2), point(x - .13, forward - .15, 1.2)], '#202a2d');
+    }
   };
-  parkedCars.map(car => ({ car, depth: localPoint(car.x, car.z, camera.yaw, camera.mount).y })).filter(item => item.depth > .04).sort((a, b) => b.depth - a.depth).forEach(item => drawProjectedCar(item.car));
+  parkedCars().map(car => ({ car, depth: localPoint(car.x, car.z, camera.yaw, camera.mount).y })).sort((a, b) => b.depth - a.depth).forEach(item => drawProjectedCar(item.car));
+  if (view === 'leftMirror' || view === 'rightMirror') {
+    // The inner edge of each side mirror catches a sliver of our own rear door.
+    const inner = view === 'leftMirror' ? w : 0, sign = view === 'leftMirror' ? -1 : 1;
+    ctx.fillStyle = '#d5b58b'; ctx.beginPath(); ctx.moveTo(inner, h * .48);
+    ctx.quadraticCurveTo(inner + sign * w * .035, h * .52, inner + sign * w * .12, h);
+    ctx.lineTo(inner, h); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = '#7d6345'; ctx.lineWidth = 2; ctx.beginPath();
+    ctx.moveTo(inner, h * .48); ctx.quadraticCurveTo(inner + sign * w * .035, h * .52, inner + sign * w * .12, h); ctx.stroke();
+  }
   if (view === 'front') { ctx.fillStyle = '#242725'; ctx.beginPath(); ctx.moveTo(0, h); ctx.lineTo(0, h * .9); ctx.quadraticCurveTo(w / 2, h * .73, w, h * .9); ctx.lineTo(w, h); ctx.fill(); }
 }
 
@@ -164,19 +244,29 @@ function drawBird(canvas) {
   const ctx = canvas.getContext('2d'), w = canvas.clientWidth, h = canvas.clientHeight, dpr = devicePixelRatio || 1;
   if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = '#727b73'; ctx.fillRect(0, 0, w, h);
-  const scale = Math.min(w / 18, h / 20), world = p => { const dx = p.x - state.x, dz = p.z - state.z; return { x: w / 2 + (Math.cos(state.heading) * dx + Math.sin(state.heading) * dz) * scale, y: h / 2 - (Math.sin(state.heading) * dx - Math.cos(state.heading) * dz) * scale }; };
+  const scale = Math.min(w / 18, h / 20), world = p => ({ x: w / 2 + (p.x - state.x) * scale, y: h / 2 + (p.z - state.z) * scale });
   ctx.strokeStyle = '#e9b94c'; ctx.lineWidth = 2;
-  for (const x of [-7, -5, -3, -1, 1, 3, 5, 7]) for (let z = -30; z < 12; z += 10) { const a = world({ x, z }), b = world({ x, z: z + 8 }); ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
-  const target = scenarios[activeScenario].target, t = world(target); ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 3; ctx.strokeRect(t.x - scale, t.y - 2.35 * scale, 2 * scale, 4.7 * scale);
+  if (activeScenario === 'Parking lot') for (const z of BAY.rows) {
+    const left = BAY.columns[0] - BAY.width / 2, right = BAY.columns.at(-1) + BAY.width / 2;
+    const near = z + BAY.length / 2, far = z - BAY.length / 2;
+    for (let i = 0; i <= BAY.columns.length; i++) {
+      const a = world({ x: left + i * BAY.width, z: near }), b = world({ x: left + i * BAY.width, z: far });
+      ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+    }
+    const topLeft = world({ x: left, z: far });
+    ctx.strokeRect(topLeft.x, topLeft.y, (right - left) * scale, BAY.length * scale);
+  }
+  if (activeScenario === 'Street') { const a = world({ x: STREET.curbX, z: -48 }), b = world({ x: STREET.curbX, z: 18 }); ctx.strokeStyle = '#d2cdc0'; ctx.lineWidth = 5; ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke(); }
+  const target = scenarios[activeScenario].target, t = world(target), targetWidth = activeScenario === 'Street' ? STREET.width : BAY.width, targetLength = activeScenario === 'Street' ? STREET.gapLength : BAY.length;
+  ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 3; ctx.strokeRect(t.x - targetWidth * scale / 2, t.y - targetLength * scale / 2, targetWidth * scale, targetLength * scale);
   [-1, 1].forEach(direction => { ctx.strokeStyle = direction > 0 ? '#63d67a' : '#ed5f59'; ctx.setLineDash([5, 4]); projectedTracks(direction).forEach(path => { ctx.beginPath(); path.forEach((p, i) => { const q = world(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.stroke(); }); }); ctx.setLineDash([]);
-  parkedCars.forEach(car => { const p = world(car); drawTopCar(ctx, p.x, p.y, scale, car.heading - state.heading, car.color); });
-  drawTopCar(ctx, w / 2, h / 2, scale, 0, '#d5b58b', true, state.steer);
+  parkedCars().forEach(car => { const p = world(car); drawTopCar(ctx, p.x, p.y, scale, car.heading, car.color, false, 0, car.type); });
+  drawTopCar(ctx, w / 2, h / 2, scale, state.heading, '#d5b58b', true, state.steer);
 }
 
 function renderDash() {
   document.querySelector('.cluster strong').textContent = Math.round(Math.abs(state.speed) * 3.6).toString().padStart(2, '0');
   document.querySelector('.wheel').style.transform = `rotate(${state.steer / CAR.maxSteer * 420}deg)`;
-  document.querySelector('.wheel b').textContent = state.gear;
   document.querySelectorAll('.gear button').forEach(b => b.classList.toggle('active', b.textContent === state.gear));
 }
 
@@ -185,8 +275,41 @@ addEventListener('keyup', e => { keys[e.key] = false; });
 document.querySelectorAll('[data-key]').forEach(button => { const set = value => keys[button.dataset.key] = value; button.onpointerdown = e => { button.setPointerCapture(e.pointerId); set(true); }; button.onpointerup = button.onpointercancel = () => set(false); });
 document.querySelectorAll('.gear button').forEach(button => button.onclick = () => { state.gear = button.textContent; state.speed = 0; renderDash(); });
 document.querySelector('.reset').onclick = reset;
-document.querySelectorAll('.scenarioTabs button').forEach(button => button.onclick = () => { document.querySelector('.scenarioTabs .active').classList.remove('active'); button.classList.add('active'); activeScenario = button.textContent; document.querySelector('#lesson').textContent = activeScenario.toUpperCase(); reset(); });
+document.querySelectorAll('.scenarioTabs button').forEach(button => button.onclick = () => { document.querySelector('.scenarioTabs .active').classList.remove('active'); button.classList.add('active'); activeScenario = button.textContent; document.querySelector('#goalText').textContent = activeScenario === 'Street' ? 'Parallel park in the highlighted curbside gap without touching another vehicle.' : 'Park front-in or back-in inside the highlighted bay without touching another vehicle.'; reset(); });
 document.querySelectorAll('.hide').forEach(button => button.onclick = () => { const box = button.closest('.monitor'), restore = document.querySelector('.restore'), replacement = document.createElement('button'); box.hidden = true; replacement.textContent = box.id === 'camera' ? '▣ Camera' : "◉ Bird's-eye"; replacement.onclick = () => { box.hidden = false; replacement.remove(); }; restore.append(replacement); });
+
+const cockpit = document.querySelector('.cockpit');
+const movableWindows = [...document.querySelectorAll('.mirror,.rearMirror,.monitor')];
+movableWindows.forEach(panel => {
+  let drag = null;
+  panel.addEventListener('pointerdown', event => {
+    if (event.target.closest('button')) return;
+    const panelRect = panel.getBoundingClientRect();
+    drag = { pointerId: event.pointerId, offsetX: event.clientX - panelRect.left, offsetY: event.clientY - panelRect.top };
+    panel.setPointerCapture(event.pointerId);
+    panel.classList.add('dragging');
+    panel.style.zIndex = '12';
+  });
+  panel.addEventListener('pointermove', event => {
+    if (!drag || event.pointerId !== drag.pointerId) return;
+    const area = cockpit.getBoundingClientRect(), width = panel.offsetWidth, height = panel.offsetHeight;
+    const current = panel.getBoundingClientRect();
+    const x = clamp(event.clientX - area.left - drag.offsetX, 0, area.width - width);
+    const y = clamp(event.clientY - area.top - drag.offsetY, 0, area.height - height);
+    const overlaps = (left, top) => movableWindows.some(other => {
+      if (other === panel || other.hidden || getComputedStyle(other).display === 'none') return false;
+      const box = other.getBoundingClientRect();
+      return left < box.right && left + width > box.left && top < box.bottom && top + height > box.top;
+    });
+    const setPosition = (left, top) => { panel.style.left = `${left - area.left}px`; panel.style.top = `${top - area.top}px`; panel.style.right = 'auto'; };
+    if (!overlaps(area.left + x, area.top + y)) setPosition(area.left + x, area.top + y);
+    else if (!overlaps(area.left + x, current.top)) setPosition(area.left + x, current.top);
+    else if (!overlaps(current.left, area.top + y)) setPosition(current.left, area.top + y);
+  });
+  const endDrag = event => { if (drag?.pointerId !== event.pointerId) return; drag = null; panel.classList.remove('dragging'); };
+  panel.addEventListener('pointerup', endDrag);
+  panel.addEventListener('pointercancel', endDrag);
+});
 
 const modal = document.querySelector('.modalBackdrop');
 document.querySelector('#settings').onclick = () => { modal.hidden = false; };
@@ -195,7 +318,6 @@ modal.onclick = e => { if (e.target === modal) modal.hidden = true; };
 document.querySelector('#fish').oninput = e => { state.fisheye = +e.target.value; document.querySelector('#fishValue').value = e.target.value; };
 document.querySelector('#fov').oninput = e => { state.fov = +e.target.value; document.querySelector('#fovValue').value = e.target.value; };
 document.querySelector('#height').oninput = e => { state.eyeHeight = +e.target.value; document.querySelector('#heightValue').value = (+e.target.value).toFixed(2); };
-let muted = false; document.querySelector('#sound').onclick = e => { muted = !muted; e.currentTarget.innerHTML = muted ? '◖ ×' : icon('sound'); };
 
 let last = performance.now();
 function loop(time) {
@@ -213,7 +335,19 @@ function loop(time) {
   next.heading += state.speed / CAR.wheelbase * Math.tan(state.steer) * dt;
   next.x += Math.sin(next.heading) * state.speed * dt;
   next.z -= Math.cos(next.heading) * state.speed * dt;
-  if (collides(next)) { state.speed = 0; state.impactUntil = time + 1400; } else Object.assign(state, { x: next.x, z: next.z, heading: next.heading });
+  if (collides(next)) {
+    // Advance to the last clear pose so the bumpers meet without overlapping.
+    let clear = 0, blocked = 1;
+    for (let i = 0; i < 12; i++) {
+      const fraction = (clear + blocked) / 2;
+      const pose = { x: state.x + (next.x - state.x) * fraction, z: state.z + (next.z - state.z) * fraction, heading: state.heading + (next.heading - state.heading) * fraction };
+      if (collides(pose)) blocked = fraction; else clear = fraction;
+    }
+    state.x += (next.x - state.x) * clear;
+    state.z += (next.z - state.z) * clear;
+    state.heading += (next.heading - state.heading) * clear;
+    state.speed = 0; state.impactUntil = time + 1400;
+  } else Object.assign(state, { x: next.x, z: next.z, heading: next.heading });
   const impact = document.querySelector('.impact'); impact.hidden = time > state.impactUntil;
   document.querySelectorAll('canvas').forEach(canvas => canvas.dataset.view === 'bird' ? drawBird(canvas) : drawPerspective(canvas, canvas.dataset.view));
   renderDash(); requestAnimationFrame(loop);
