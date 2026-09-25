@@ -1,7 +1,7 @@
 const icon = name => `<span class="ico">${({ settings: '⚙', camera: '▣', eye: '◉', left: '‹', right: '›', reset: '↻', info: 'i' })[name]}</span>`;
 
 document.querySelector('#root').innerHTML = `<main>
-  <header><div class="brand"><div class="brandmark"><span></span></div><div><b>PARKING SIMULATOR</b><small>6.6 KM CITY • LIVE TRAFFIC</small></div></div><nav class="scenarioTabs" aria-label="Choose a parking scenario"><button>Parking lot</button><button class="active">Street</button></nav><div class="topActions"><button id="settings" aria-label="Open settings">${icon('settings')}</button></div></header>
+  <header><div class="brand"><div class="brandmark"><span></span></div><div><b>PARKING SIMULATOR</b><small>CONNECTED CITY • LIVE TRAFFIC</small></div></div><div class="cityBadge">CITY DRIVE</div><div class="topActions"><button id="settings" aria-label="Open settings">${icon('settings')}</button></div></header>
   <section class="cockpit">
     <div class="mirrorMount left" aria-hidden="true"></div><div class="mirrorMount right" aria-hidden="true"></div>
     <div class="mirror left"><canvas data-view="leftMirror"></canvas><span>OBJECTS IN MIRROR ARE CLOSER THAN THEY APPEAR</span></div>
@@ -11,7 +11,7 @@ document.querySelector('#root').innerHTML = `<main>
     <aside class="miniViews"><div class="monitor" id="camera"><div class="monitorTitle">${icon('camera')} REAR CAMERA <button class="hide">×</button></div><div class="feed"><canvas data-view="rearCamera"></canvas></div></div><div class="monitor" id="bird"><div class="monitorTitle">${icon('eye')} BIRD'S-EYE <button class="hide">×</button></div><div class="feed bird"><canvas data-view="bird"></canvas></div></div><div class="restore"></div></aside>
     <div class="dash"><div class="wheel"><div class="wheelSpoke leftSpoke"></div><div class="wheelSpoke rightSpoke"></div><div class="wheelSpoke lowerSpoke"></div><b></b></div><div class="cluster"><small>SPEED</small><strong>00</strong><span>km/h</span></div><div class="gear">${['P', 'R', 'N', 'D'].map(g => `<button class="${g === 'P' ? 'active' : ''}">${g}</button>`).join('')}</div></div>
   </section>
-  <footer><div class="hint">${icon('info')}<span><b>YOUR GOAL</b> <span id="goalText">Parallel park in the highlighted curbside gap without touching another vehicle.</span></span></div><div class="controls"><button data-key="ArrowLeft">${icon('left')}</button><div class="keygroup"><button data-key="ArrowUp">↑</button><small>DRIVE</small></div><div class="keygroup"><button data-key="ArrowDown">↓</button><small>REVERSE</small></div><button data-key="ArrowRight">${icon('right')}</button><button class="reset">${icon('reset')} RESET</button></div></footer>
+  <footer><div class="hint">${icon('info')}<span><b>YOUR GOAL</b> Explore the connected city and park in the highlighted bay.</span></div><div class="controls"><button data-key="ArrowLeft">${icon('left')}</button><div class="keygroup"><button data-key="ArrowUp">↑</button><small>DRIVE</small></div><div class="keygroup"><button data-key="ArrowDown">↓</button><small>REVERSE</small></div><button data-key="ArrowRight">${icon('right')}</button><button class="reset">${icon('reset')} RESET</button></div></footer>
   <div class="modalBackdrop" hidden><div class="modal"><button class="close">×</button><h2>Simulation settings</h2><p>Fine-tune the optical behavior of your driving aids.</p><label>Mirror fisheye <b><output id="fishValue">16</output>%</b></label><input id="fish" type="range" value="16" min="0" max="40"><label>Camera field of view <b><output id="fovValue">110</output>°</b></label><input id="fov" type="range" value="110" min="75" max="135"><label>Driver eye height <b><output id="heightValue">1.25</output> m</b></label><input id="height" type="range" value="1.25" min="0.8" max="1.8" step="0.05"><button class="done">APPLY SETTINGS</button></div></div>
 </main>`;
 
@@ -20,10 +20,9 @@ const state = { x: 0, z: 8, heading: 0, speed: 0, steer: 0, gear: 'P', fisheye: 
 const keys = {};
 const CAR = { width: 1.82, length: 4.45, height: 1.48, wheelbase: 2.7, maxSteer: 32 * Math.PI / 180 };
 // The old scene ended after 66 m. This six-and-a-half kilometre city is 100× longer.
-const CITY = { length: 6600, roadLeft: -8, roadRight: 8, sidewalk: 4, fence: 12.5 };
-const BUILDING_DEPTH = 9;
+const CITY = { length: 6600, roadHalf: 7, sidewalk: 3, block: 80 };
 const BAY_WIDTH = 2.7;
-const BAY = { width: BAY_WIDTH, length: 5.5, rows: [-27, -15, -3], columns: [-1.5, -.5, .5, 1.5].map(slot => slot * BAY_WIDTH) };
+const BAY = { width: BAY_WIDTH, length: 5.5, rows: [-28, -16, -4], columns: [24, 27, 30, 33] };
 const lotCars = [
   { x: BAY.columns[0], z: -27, heading: 0, color: '#202326', type: 'van' }, { x: BAY.columns[1], z: -27, heading: 0, color: '#e7e2d7' },
   { x: BAY.columns[2], z: -27, heading: 0, color: '#566977' }, { x: BAY.columns[3], z: -27, heading: 0, color: '#9a3f38' },
@@ -31,55 +30,72 @@ const lotCars = [
   { x: BAY.columns[3], z: -15, heading: 0, color: '#bec5bd', type: 'truck' }, { x: BAY.columns[2], z: -3, heading: 0, color: '#315268' },
   { x: BAY.columns[3], z: -3, heading: 0, color: '#17191b' }
 ];
-const streetCars = [
-  { x: 6, z: -39, heading: 0, color: '#465b68', type: 'van' },
-  { x: 6, z: -27, heading: 0, color: '#a34d42' },
-  { x: 6, z: -15, heading: 0, color: '#d9d3c5' },
-  { x: 6, z: -3, heading: 0, color: '#334747' }
-];
-const STREET = { curbX: 7.4, gapLength: 12 - CAR.length, width: 2.5 };
 const traffic = [
-  { x: -2.4, z: -34, heading: 0, speed: 5.4, steer: 0, color: '#d4d8d5' },
-  { x: -2.4, z: -62, heading: 0, speed: 4.5, steer: 0, color: '#c08b35', type: 'van' },
-  { x: 2.5, z: -52, heading: Math.PI, speed: 5.1, steer: 0, color: '#54748a' },
-  { x: 2.5, z: -15, heading: Math.PI, speed: 4.1, steer: 0, color: '#852f2f' }
+  { x: 2.7, z: -35, heading: 0, speed: 5.4, cruise: 5.4, color: '#d4d8d5' },
+  { x: 2.7, z: 35, heading: 0, speed: 4.5, cruise: 4.5, color: '#c08b35', type: 'van' },
+  { x: -2.7, z: -48, heading: Math.PI, speed: 5.1, cruise: 5.1, color: '#54748a' },
+  { x: -2.7, z: 28, heading: Math.PI, speed: 4.1, cruise: 4.1, color: '#852f2f' }
 ];
 const trafficStarts = traffic.map(car => ({ ...car }));
-const scenarios = {
-  'Parking lot': { x: 0, z: 8, heading: 0, target: { x: BAY.columns[2], z: -15, heading: 0 }, cars: lotCars },
-  'Street': { x: 2.5, z: 8, heading: 0, target: { x: 6, z: -21, heading: 0 }, cars: streetCars }
-};
-// Open directly in the expanded scene so the city and live traffic are visible
-// without requiring the driver to discover and switch scenario tabs first.
-let activeScenario = 'Street';
-const parkedCars = () => scenarios[activeScenario].cars;
-const visibleCars = () => activeScenario === 'Street' ? [...parkedCars(), ...traffic] : parkedCars();
+const TARGET = { x: BAY.columns[2], z: -16, heading: 0 };
+const parkedCars = () => lotCars;
+const visibleCars = () => [...lotCars, ...traffic];
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 
-// Buildings, fences, streets, and vehicles all live in the same world-space map.
+// Road surfaces and paint are generated once in world coordinates. Every view
+// consumes these same physical segments, so a white edge line seen through the
+// windshield appears at the identical position in mirrors and camera feeds.
+function nearbyRoadMap(centerX, centerZ, reach) {
+  const vertical = [], horizontal = [], markings = [];
+  const firstX = Math.floor((centerX - reach) / CITY.block) * CITY.block;
+  const firstZ = Math.floor((centerZ - reach) / CITY.block) * CITY.block;
+  for (let x = firstX; x <= centerX + reach; x += CITY.block) {
+    vertical.push({ left: x - CITY.roadHalf, right: x + CITY.roadHalf, near: centerZ - reach, far: centerZ + reach });
+    markings.push(
+      { ax: x - CITY.roadHalf, az: centerZ - reach, bx: x - CITY.roadHalf, bz: centerZ + reach, color: '#f2eee3', width: .18 },
+      { ax: x + CITY.roadHalf, az: centerZ - reach, bx: x + CITY.roadHalf, bz: centerZ + reach, color: '#f2eee3', width: .18 },
+      { ax: x, az: centerZ - reach, bx: x, bz: centerZ + reach, color: '#d6b84a', width: .1, dash: true }
+    );
+  }
+  for (let z = firstZ; z <= centerZ + reach; z += CITY.block) {
+    horizontal.push({ left: centerX - reach, right: centerX + reach, near: z - CITY.roadHalf, far: z + CITY.roadHalf });
+    markings.push(
+      { ax: centerX - reach, az: z - CITY.roadHalf, bx: centerX + reach, bz: z - CITY.roadHalf, color: '#f2eee3', width: .18 },
+      { ax: centerX - reach, az: z + CITY.roadHalf, bx: centerX + reach, bz: z + CITY.roadHalf, color: '#f2eee3', width: .18 },
+      { ax: centerX - reach, az: z, bx: centerX + reach, bz: z, color: '#d6b84a', width: .1, dash: true }
+    );
+  }
+  return { vertical, horizontal, markings };
+}
+
+// Buildings, streets, and vehicles all live in the same world-space map.
 // Keeping this geometry shared prevents the mirrors and overhead camera from
 // inventing a different shape or position for an object.
-function nearbyBuildings(center, reach = 180) {
-  const buildings = [], first = Math.floor((center - reach) / 28) * 28;
-  for (let z = first; z <= center + reach; z += 28) for (const side of [-1, 1]) {
-    buildings.push({
-      x: side * 18, z, width: 9 + Math.abs((z / 28) % 3), length: BUILDING_DEPTH,
-      height: 7 + Math.abs((z / 28) % 4) * 1.8,
-      color: side < 0 ? '#766f68' : '#82796e', type: 'building'
-    });
+function nearbyBuildings(centerZ, reach = 180, centerX = state.x) {
+  const buildings = [];
+  const firstX = Math.floor((centerX - reach) / CITY.block) * CITY.block;
+  const firstZ = Math.floor((centerZ - reach) / CITY.block) * CITY.block;
+  for (let roadX = firstX; roadX <= centerX + reach; roadX += CITY.block) {
+    for (let roadZ = firstZ; roadZ <= centerZ + reach; roadZ += CITY.block) {
+      // Four compact, solid buildings occupy each block while leaving sidewalks,
+      // every street, and every intersection continuously connected.
+      for (const [ox, oz] of [[24, 24], [55, 24], [24, 55], [55, 55]]) {
+        const seed = Math.abs((roadX + ox) * 3 + (roadZ + oz));
+        buildings.push({ x: roadX + ox, z: roadZ + oz, width: 23, length: 23,
+          height: 8 + (seed % 5) * 1.6, color: seed % 2 ? '#766f68' : '#82796e', type: 'building' });
+      }
+    }
   }
-  return buildings;
+  // The starting block is a public parking lot instead of another building.
+  return buildings.filter(building => !(building.x > 10 && building.x < 70 && building.z > -70 && building.z < 10));
 }
 
 function mapObstacles(center = state.z, reach = 24) {
-  if (activeScenario !== 'Street') return [];
-  const fences = [-CITY.fence, CITY.fence].map(x => ({ x, z: center, width: .16, length: reach * 2, heading: 0, type: 'barrier' }));
-  return [...fences, ...nearbyBuildings(center, reach + 16).map(building => ({ ...building, heading: 0 }))];
+  return nearbyBuildings(center, reach + 24, state.x).map(building => ({ ...building, heading: 0 }));
 }
 
 function reset() {
-  const start = scenarios[activeScenario];
-  Object.assign(state, { x: start.x, z: start.z, heading: start.heading, speed: 0, steer: 0, gear: 'P', impactUntil: 0 });
+  Object.assign(state, { x: 2.7, z: 18, heading: 0, speed: 0, steer: 0, gear: 'P', impactUntil: 0 });
   traffic.forEach((car, i) => Object.assign(car, trafficStarts[i]));
   renderDash();
 }
@@ -199,31 +215,54 @@ function drawPerspective(canvas, view) {
     const projected = clipped.map(p => { let x = w / 2 + p.x / p.y * focal; if (camera.mirror) x = w - x; return { x, y: horizon + focal * state.eyeHeight / p.y }; });
     ctx.fillStyle = fill; ctx.beginPath(); projected.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath(); ctx.fill();
   };
-  if (activeScenario === 'Street') {
+  const groundLine = (ax, az, bx, bz) => { ctx.beginPath(); let drawing = false; for (let i = 0; i <= 40; i++) { const t = i / 40, p = project(ax + (bx - ax) * t, az + (bz - az) * t); if (!p) { drawing = false; continue; } if (!drawing) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); drawing = true; } ctx.stroke(); };
+  {
     const reach = 170, center = state.z;
-    groundPolygon([[CITY.roadLeft, center - reach], [CITY.roadRight, center - reach], [CITY.roadRight, center + reach], [CITY.roadLeft, center + reach]], '#444b4c');
-    groundPolygon([[CITY.roadRight, center - reach], [CITY.roadRight + CITY.sidewalk, center - reach], [CITY.roadRight + CITY.sidewalk, center + reach], [CITY.roadRight, center + reach]], '#aaa79d');
-    groundPolygon([[CITY.roadLeft - CITY.sidewalk, center - reach], [CITY.roadLeft, center - reach], [CITY.roadLeft, center + reach], [CITY.roadLeft - CITY.sidewalk, center + reach]], '#aaa79d');
-    // Repeating blocks make the entire 6.6 km map feel like a city rather than
-    // an empty plane. Only nearby blocks are submitted to each camera.
-    const blocks = nearbyBuildings(center, reach).map(block => ({ ...block, depth: localPoint(block.x, block.z, camera.yaw, camera.mount).y })).filter(block => block.depth > .4);
-    const firstBlock = Math.floor((center - reach) / 28) * 28;
+    // A continuous grid replaces the old isolated street/lot modes. Parallel
+    // roads and cross streets form turnable intersections without dead ends.
+    groundPolygon([[state.x - reach, center - reach], [state.x + reach, center - reach], [state.x + reach, center + reach], [state.x - reach, center + reach]], '#aaa79d');
+    const roadMap = nearbyRoadMap(state.x, center, reach);
+    roadMap.vertical.forEach(road => groundPolygon([[road.left, road.near], [road.right, road.near], [road.right, road.far], [road.left, road.far]], '#444b4c'));
+    roadMap.horizontal.forEach(road => groundPolygon([[road.left, road.near], [road.right, road.near], [road.right, road.far], [road.left, road.far]], '#444b4c'));
+    groundPolygon([[11, -37], [45, -37], [45, 8], [11, 8]], '#555d5b');
+    roadMap.markings.forEach(marking => {
+      ctx.strokeStyle = marking.color; ctx.lineWidth = marking.width * 12;
+      ctx.setLineDash(marking.dash ? [12, 12] : []);
+      groundLine(marking.ax, marking.az, marking.bx, marking.bz);
+    });
+    ctx.setLineDash([]);
+    const blocks = nearbyBuildings(center, reach, state.x).map(block => ({ ...block, depth: localPoint(block.x, block.z, camera.yaw, camera.mount).y })).filter(block => block.depth > .4);
     blocks.sort((a, b) => b.depth - a.depth).forEach(block => {
       const corners = objectCorners(block), bottom = corners.map(p => project3d(p.x, p.z, 0)), top = corners.map(p => project3d(p.x, p.z, block.height));
       const face = (points, fill) => { if (points.some(p => !p)) return; ctx.fillStyle = fill; ctx.beginPath(); points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath(); ctx.fill(); };
+      ctx.globalAlpha = 1;
       [0, 1, 2, 3].map(i => ({ i, depth: localPoint(corners[i].x, corners[i].z, camera.yaw, camera.mount).y })).sort((a, b) => b.depth - a.depth).forEach(({ i }) => face([bottom[i], bottom[(i + 1) % 4], top[(i + 1) % 4], top[i]], i % 2 ? block.color : '#625c57'));
       face(top, '#91877a');
+      // Walls are always fully opaque. Only the inset window glazing uses
+      // transparency, so scenery can never show through the building itself.
+      [0, 1, 2, 3].forEach(i => {
+        const wall = [bottom[i], bottom[(i + 1) % 4], top[(i + 1) % 4], top[i]];
+        if (wall.some(point => !point)) return;
+        const interpolate = (u, v) => ({ x: wall[0].x * (1 - u) * (1 - v) + wall[1].x * u * (1 - v) + wall[2].x * u * v + wall[3].x * (1 - u) * v, y: wall[0].y * (1 - u) * (1 - v) + wall[1].y * u * (1 - v) + wall[2].y * u * v + wall[3].y * (1 - u) * v });
+        for (const u of [.15, .43, .71]) {
+          const glass = [interpolate(u, .22), interpolate(u + .16, .22), interpolate(u + .16, .52), interpolate(u, .52)];
+          ctx.fillStyle = 'rgba(92, 137, 153, .72)'; ctx.beginPath(); glass.forEach((point, j) => j ? ctx.lineTo(point.x, point.y) : ctx.moveTo(point.x, point.y)); ctx.closePath(); ctx.fill();
+        }
+      });
     });
-    ctx.strokeStyle = '#515854'; ctx.lineWidth = 2;
-    for (let z = firstBlock; z < center + reach; z += 4) for (const x of [-CITY.fence, CITY.fence]) {
-      const foot = project3d(x, z, 0), cap = project3d(x, z, 1.25); if (!foot || !cap) continue;
-      ctx.beginPath(); ctx.moveTo(foot.x, foot.y); ctx.lineTo(cap.x, cap.y); ctx.stroke();
+    // Stop signs sit on the near-right corner of each intersection.
+    for (const roadX of roadMap.vertical) for (const roadZ of roadMap.horizontal) {
+      const x = (roadX.left + roadX.right) / 2, z = (roadZ.near + roadZ.far) / 2;
+      const pole = project3d(x + 9, z + 9, 0), sign = project3d(x + 9, z + 9, 2.1);
+      if (!pole || !sign) continue;
+      ctx.strokeStyle = '#d8d8d2'; ctx.lineWidth = Math.max(1, 18 / sign.depth); ctx.beginPath(); ctx.moveTo(pole.x, pole.y); ctx.lineTo(sign.x, sign.y); ctx.stroke();
+      const radius = clamp(90 / sign.depth, 2, 15); ctx.fillStyle = '#b92f2b'; ctx.beginPath(); for (let i = 0; i < 8; i++) { const angle = Math.PI / 8 + i * Math.PI / 4; const px = sign.x + Math.cos(angle) * radius, py = sign.y + Math.sin(angle) * radius; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); } ctx.closePath(); ctx.fill();
+      if (radius > 7) { ctx.fillStyle = '#fff'; ctx.font = `bold ${radius * .55}px sans-serif`; ctx.textAlign = 'center'; ctx.fillText('STOP', sign.x, sign.y + radius * .2); }
     }
   }
   // Parking grid is projected from the same world coordinates as the bird's-eye view.
   ctx.lineWidth = 2; ctx.strokeStyle = '#edbd4e';
-  const groundLine = (ax, az, bx, bz) => { ctx.beginPath(); let drawing = false; for (let i = 0; i <= 40; i++) { const t = i / 40, p = project(ax + (bx - ax) * t, az + (bz - az) * t); if (!p) { drawing = false; continue; } if (!drawing) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); drawing = true; } ctx.stroke(); };
-  if (activeScenario === 'Parking lot') for (const z of BAY.rows) {
+  for (const z of BAY.rows) {
     const near = z + BAY.length / 2, far = z - BAY.length / 2;
     const left = BAY.columns[0] - BAY.width / 2, right = BAY.columns.at(-1) + BAY.width / 2;
     for (let i = 0; i <= BAY.columns.length; i++) {
@@ -232,16 +271,10 @@ function drawPerspective(canvas, view) {
     }
     groundLine(left, near, right, near); groundLine(left, far, right, far);
   }
-  if (activeScenario === 'Street') {
-    ctx.strokeStyle = '#f2eee3'; ctx.lineWidth = 8;
-    groundLine(CITY.roadLeft, state.z - 180, CITY.roadLeft, state.z + 180); groundLine(CITY.roadRight, state.z - 180, CITY.roadRight, state.z + 180);
-    ctx.strokeStyle = '#d6b84a'; ctx.lineWidth = 2; ctx.setLineDash([12, 12]); groundLine(0, state.z - 180, 0, state.z + 180); ctx.setLineDash([]);
-    ctx.strokeStyle = '#5d6460'; ctx.lineWidth = 3; groundLine(-CITY.fence, state.z - 180, -CITY.fence, state.z + 180); groundLine(CITY.fence, state.z - 180, CITY.fence, state.z + 180);
-  }
-  const target = scenarios[activeScenario].target;
+  const target = TARGET;
   ctx.strokeStyle = '#ffe393'; ctx.lineWidth = 4;
-  const targetWidth = activeScenario === 'Street' ? STREET.width : BAY.width;
-  const targetLength = activeScenario === 'Street' ? STREET.gapLength : BAY.length;
+  const targetWidth = BAY.width;
+  const targetLength = BAY.length;
   const left = target.x - targetWidth / 2, right = target.x + targetWidth / 2, near = target.z + targetLength / 2, far = target.z - targetLength / 2;
   groundLine(left, near, right, near); groundLine(left, near, left, far); groundLine(right, near, right, far); groundLine(left, far, right, far);
   if (camera.path) {
@@ -325,7 +358,7 @@ function drawBird(canvas) {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = '#727b73'; ctx.fillRect(0, 0, w, h);
   const scale = Math.min(w / 34, h / 27), world = p => ({ x: w / 2 + (p.x - state.x) * scale, y: h / 2 + (p.z - state.z) * scale });
   ctx.strokeStyle = '#e9b94c'; ctx.lineWidth = 2;
-  if (activeScenario === 'Parking lot') for (const z of BAY.rows) {
+  for (const z of BAY.rows) {
     const left = BAY.columns[0] - BAY.width / 2, right = BAY.columns.at(-1) + BAY.width / 2;
     const near = z + BAY.length / 2, far = z - BAY.length / 2;
     for (let i = 0; i <= BAY.columns.length; i++) {
@@ -335,15 +368,18 @@ function drawBird(canvas) {
     const topLeft = world({ x: left, z: far });
     ctx.strokeRect(topLeft.x, topLeft.y, (right - left) * scale, BAY.length * scale);
   }
-  if (activeScenario === 'Street') {
-    const a = world({ x: CITY.roadLeft, z: state.z - 30 }), b = world({ x: CITY.roadLeft, z: state.z + 30 }), c = world({ x: CITY.roadRight, z: state.z - 30 }), d = world({ x: CITY.roadRight, z: state.z + 30 });
-    ctx.fillStyle = '#444b4c'; ctx.fillRect(a.x, a.y, c.x - a.x, b.y - a.y); ctx.strokeStyle = '#f0ece0'; ctx.lineWidth = 4; [a, c].forEach((p, i) => { const q = i ? d : b; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); });
-    ctx.fillStyle = '#aaa79d';
-    [[CITY.roadLeft - CITY.sidewalk, CITY.roadLeft], [CITY.roadRight, CITY.roadRight + CITY.sidewalk]].forEach(([left, right]) => { const p = world({ x: left, z: state.z - 30 }); ctx.fillRect(p.x, p.y, (right - left) * scale, 60 * scale); });
-    nearbyBuildings(state.z, 20).forEach(building => { const p = world({ x: building.x - building.width / 2, z: building.z - building.length / 2 }); ctx.fillStyle = building.color; ctx.fillRect(p.x, p.y, building.width * scale, building.length * scale); ctx.strokeStyle = '#353837'; ctx.strokeRect(p.x, p.y, building.width * scale, building.length * scale); });
-    ctx.strokeStyle = '#515854'; ctx.lineWidth = Math.max(2, scale * .16); [-CITY.fence, CITY.fence].forEach(x => { const p = world({ x, z: state.z - 30 }), q = world({ x, z: state.z + 30 }); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); });
-  }
-  const target = scenarios[activeScenario].target, t = world(target), targetWidth = activeScenario === 'Street' ? STREET.width : BAY.width, targetLength = activeScenario === 'Street' ? STREET.gapLength : BAY.length;
+  const roadMap = nearbyRoadMap(state.x, state.z, 30);
+  ctx.fillStyle = '#444b4c';
+  roadMap.vertical.forEach(road => { const p = world({ x: road.left, z: road.near }); ctx.fillRect(p.x, p.y, (road.right - road.left) * scale, (road.far - road.near) * scale); });
+  roadMap.horizontal.forEach(road => { const p = world({ x: road.left, z: road.near }); ctx.fillRect(p.x, p.y, (road.right - road.left) * scale, (road.far - road.near) * scale); });
+  roadMap.markings.forEach(marking => {
+    const a = world({ x: marking.ax, z: marking.az }), b = world({ x: marking.bx, z: marking.bz });
+    ctx.strokeStyle = marking.color; ctx.lineWidth = Math.max(1, marking.width * scale); ctx.setLineDash(marking.dash ? [5, 5] : []);
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+  });
+  ctx.setLineDash([]);
+  nearbyBuildings(state.z, 35, state.x).forEach(building => { const p = world({ x: building.x - building.width / 2, z: building.z - building.length / 2 }); ctx.fillStyle = building.color; ctx.fillRect(p.x, p.y, building.width * scale, building.length * scale); ctx.strokeStyle = '#353837'; ctx.strokeRect(p.x, p.y, building.width * scale, building.length * scale); });
+  const target = TARGET, t = world(target), targetWidth = BAY.width, targetLength = BAY.length;
   ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 3; ctx.strokeRect(t.x - targetWidth * scale / 2, t.y - targetLength * scale / 2, targetWidth * scale, targetLength * scale);
   [-1, 1].forEach(direction => { ctx.strokeStyle = direction > 0 ? '#63d67a' : '#ed5f59'; ctx.setLineDash([5, 4]); projectedTracks(direction).forEach(path => { ctx.beginPath(); path.forEach((p, i) => { const q = world(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.stroke(); }); }); ctx.setLineDash([]);
   visibleCars().forEach(car => { const p = world(car); drawTopCar(ctx, p.x, p.y, scale, car.heading, car.color, false, car.steer || 0, car.type); });
@@ -361,7 +397,6 @@ addEventListener('keyup', e => { keys[e.key] = false; });
 document.querySelectorAll('[data-key]').forEach(button => { const set = value => keys[button.dataset.key] = value; button.onpointerdown = e => { button.setPointerCapture(e.pointerId); set(true); }; button.onpointerup = button.onpointercancel = () => set(false); });
 document.querySelectorAll('.gear button').forEach(button => button.onclick = () => { state.gear = button.textContent; state.speed = 0; renderDash(); });
 document.querySelector('.reset').onclick = reset;
-document.querySelectorAll('.scenarioTabs button').forEach(button => button.onclick = () => { document.querySelector('.scenarioTabs .active').classList.remove('active'); button.classList.add('active'); activeScenario = button.textContent; document.querySelector('#goalText').textContent = activeScenario === 'Street' ? 'Parallel park in the highlighted curbside gap without touching another vehicle.' : 'Park front-in or back-in inside the highlighted bay without touching another vehicle.'; reset(); });
 document.querySelectorAll('.hide').forEach(button => button.onclick = () => { const box = button.closest('.monitor'), restore = document.querySelector('.restore'), replacement = document.createElement('button'); box.hidden = true; replacement.textContent = box.id === 'camera' ? '▣ Camera' : "◉ Bird's-eye"; replacement.onclick = () => { box.hidden = false; replacement.remove(); }; restore.append(replacement); });
 
 const cockpit = document.querySelector('.cockpit');
@@ -412,31 +447,32 @@ function predictedPose(vehicle, seconds, speed = vehicle.speed) {
 }
 
 function trafficHazard(car) {
-  // Look several seconds ahead instead of waiting for bumper contact. Enlarging
-  // both swept boxes slightly gives oncoming traffic a comfortable stopping gap.
+  // Reserve two complete car lengths between a traffic bumper and the driver.
+  // The look-ahead envelope means traffic brakes before entering that space,
+  // rather than reacting only when the physical vehicle boxes overlap.
+  const stopGap = CAR.length * 2;
   const closingWithDriver = Math.abs(car.speed) + Math.abs(state.speed);
-  const horizon = clamp(1.2 + closingWithDriver / 3, 2.2, 4.5);
+  const horizon = clamp(2 + closingWithDriver / 2, 3, 6);
   for (let seconds = .25; seconds <= horizon; seconds += .25) {
     const futureCar = predictedPose(car, seconds);
     const futureDriver = predictedPose(state, seconds);
-    if (polygonsOverlap(vehicleCorners(futureCar, .7), vehicleCorners(futureDriver, .7))) return { danger: true, seconds };
+    if (polygonsOverlap(vehicleCorners(futureCar), vehicleCorners(futureDriver, stopGap * 2))) return { danger: true, seconds };
   }
   return { danger: false, seconds: Infinity };
 }
 
 function updateTraffic(dt) {
-  if (activeScenario !== 'Street') return;
   traffic.forEach((car, index) => {
     // Every road user uses the same bicycle model as the driver's car.
-    const cruise = trafficStarts[index].speed;
+    const cruise = trafficStarts[index].cruise;
     car.steer += (0 - car.steer) * Math.min(1, dt * 4);
     const hazard = trafficHazard(car);
-    const desiredSpeed = hazard.danger ? (hazard.seconds < 1.15 ? 0 : cruise * clamp((hazard.seconds - 1) / 2.2, 0, 1)) : cruise;
-    car.speed += clamp(desiredSpeed - car.speed, -6.5 * dt, 1.4 * dt);
+    const desiredSpeed = hazard.danger ? (hazard.seconds < 2.2 ? 0 : cruise * clamp((hazard.seconds - 2) / 2.5, 0, 1)) : cruise;
+    car.speed += clamp(desiredSpeed - car.speed, -7.5 * dt, 1.4 * dt);
     const next = { ...car, heading: car.heading + car.speed / CAR.wheelbase * Math.tan(car.steer) * dt };
     next.x += Math.sin(next.heading) * car.speed * dt; next.z -= Math.cos(next.heading) * car.speed * dt;
     const blockers = [...parkedCars(), ...traffic.filter(other => other !== car), state];
-    const crash = blockers.some(other => polygonsOverlap(vehicleCorners(next), vehicleCorners(other, .18))) || mapObstacles(next.z).some(object => polygonsOverlap(vehicleCorners(next), objectCorners(object)));
+    const crash = blockers.some(other => polygonsOverlap(vehicleCorners(next), vehicleCorners(other, other === state ? CAR.length * 2 : .18))) || mapObstacles(next.z).some(object => polygonsOverlap(vehicleCorners(next), objectCorners(object)));
     if (crash) car.speed = Math.max(0, car.speed - 8 * dt);
     else Object.assign(car, { x: next.x, z: next.z, heading: next.heading });
     // Recycle traffic only at the far ends of the full 6.6 km map.

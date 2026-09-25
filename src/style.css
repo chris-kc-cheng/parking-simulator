@@ -18,6 +18,8 @@
 header .scenarioTabs{position:static;transform:none;flex-shrink:0;background:#202320}
 header .scenarioTabs button{font-size:10px;padding:10px 16px;white-space:nowrap}
 @media(max-width:800px){header .brand b{display:none}header .scenarioTabs button{font-size:9px;padding:9px 8px}}
+.cityBadge{padding:9px 16px;border:1px solid #4a4336;background:#211f1a;color:#d0ab68;font:10px DM Mono;letter-spacing:2px}
+@media(max-width:800px){.cityBadge{padding:8px;font-size:8px;letter-spacing:1px}}
 .mirror{top:31%;width:18%;height:21%;border:8px solid #181b1a;border-radius:7px!important;overflow:hidden}
 .mirror.left{left:2%}.mirror.right{right:2%}
 .mirror:after{content:'';position:absolute;inset:0;border:1px solid #454b48;border-radius:2px;pointer-events:none}

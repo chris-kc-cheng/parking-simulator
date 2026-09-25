@@ -5,15 +5,18 @@ simulator built for practice.
 
 ## [Play Parking Simulator](https://chris-kc-cheng.github.io/parking-simulator/)
 
-![Parking Simulator showing the parking lot and street scenarios, windshield, mirrors, rear camera, and bird's-eye view](screenshot.png)
+![Parking Simulator showing the connected city, live traffic, windshield, mirrors, rear camera, and bird's-eye view](screenshot.png)
 
-## Choose a lesson
+## Explore the city
 
-- **Parking lot** — enter the highlighted bay front-in or back-in.
-- **Street** — parallel park beside the curb in a gap about 1.7 car lengths long.
+Drive one continuous 6.6 km city map containing a parking lot, connected streets,
+turns, and intersections without dead ends. Stop signs mark intersection corners,
+and the highlighted bay in the parking lot gives you a destination for front-in or
+back-in practice.
 
-Choose a lesson from the top bar. Your goal is to finish with the
-vehicle completely inside the yellow parking lines.
+Live traffic keeps to the right side of the road and begins braking early to leave
+two car lengths between its bumper and your vehicle. Buildings are solid obstacles,
+so use the connected road network to drive around each block.
 
 ## Drive
 
@@ -25,7 +28,7 @@ vehicle completely inside the yellow parking lines.
 | Select a gear | — | Choose **P**, **R**, **N**, or **D** on the dashboard |
 
 The speed display and steering wheel move with the car. Select **Reset** at any
-time to return to the lesson's starting position.
+time to return to the city's starting position.
 
 ## Use the driving aids
 
