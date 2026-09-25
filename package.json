@@ -1,1 +1,1 @@
-{"scripts":{"dev":"python3 -m http.server 4173","build":"rm -rf dist && mkdir -p dist/src && cp index.html .nojekyll dist/ && cp src/main.js src/style.css dist/src/"}}
+{"scripts":{"dev":"python -m http.server 4819 --bind 127.0.0.1","build":"rm -rf dist && mkdir -p dist/src && cp index.html .nojekyll screenshot.png dist/ && cp src/main.js src/style.css dist/src/"}}
