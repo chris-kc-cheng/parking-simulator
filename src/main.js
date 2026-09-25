@@ -21,6 +21,7 @@ const keys = {};
 const CAR = { width: 1.82, length: 4.45, height: 1.48, wheelbase: 2.7, maxSteer: 32 * Math.PI / 180 };
 // The old scene ended after 66 m. This six-and-a-half kilometre city is 100× longer.
 const CITY = { length: 6600, roadLeft: -8, roadRight: 8, sidewalk: 4, fence: 12.5 };
+const BUILDING_DEPTH = 9;
 const BAY_WIDTH = 2.7;
 const BAY = { width: BAY_WIDTH, length: 5.5, rows: [-27, -15, -3], columns: [-1.5, -.5, .5, 1.5].map(slot => slot * BAY_WIDTH) };
 const lotCars = [
@@ -54,6 +55,27 @@ let activeScenario = 'Street';
 const parkedCars = () => scenarios[activeScenario].cars;
 const visibleCars = () => activeScenario === 'Street' ? [...parkedCars(), ...traffic] : parkedCars();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+// Buildings, fences, streets, and vehicles all live in the same world-space map.
+// Keeping this geometry shared prevents the mirrors and overhead camera from
+// inventing a different shape or position for an object.
+function nearbyBuildings(center, reach = 180) {
+  const buildings = [], first = Math.floor((center - reach) / 28) * 28;
+  for (let z = first; z <= center + reach; z += 28) for (const side of [-1, 1]) {
+    buildings.push({
+      x: side * 18, z, width: 9 + Math.abs((z / 28) % 3), length: BUILDING_DEPTH,
+      height: 7 + Math.abs((z / 28) % 4) * 1.8,
+      color: side < 0 ? '#766f68' : '#82796e', type: 'building'
+    });
+  }
+  return buildings;
+}
+
+function mapObstacles(center = state.z, reach = 24) {
+  if (activeScenario !== 'Street') return [];
+  const fences = [-CITY.fence, CITY.fence].map(x => ({ x, z: center, width: .16, length: reach * 2, heading: 0, type: 'barrier' }));
+  return [...fences, ...nearbyBuildings(center, reach + 16).map(building => ({ ...building, heading: 0 }))];
+}
 
 function reset() {
   const start = scenarios[activeScenario];
@@ -92,7 +114,12 @@ function polygonsOverlap(a, b) {
 
 function collides(pose) {
   const player = vehicleCorners(pose);
-  return visibleCars().some(car => polygonsOverlap(player, vehicleCorners(car)));
+  return [...visibleCars(), ...mapObstacles(pose.z)].some(object => polygonsOverlap(player, object.type === 'barrier' || object.type === 'building' ? objectCorners(object) : vehicleCorners(object)));
+}
+
+function objectCorners(object, margin = 0) {
+  const hw = (object.width + margin) / 2, hl = (object.length + margin) / 2;
+  return [[-hw, -hl], [hw, -hl], [hw, hl], [-hw, hl]].map(([x, z]) => ({ x: object.x + x, z: object.z + z }));
 }
 
 function vehicleSize(vehicle) {
@@ -179,20 +206,13 @@ function drawPerspective(canvas, view) {
     groundPolygon([[CITY.roadLeft - CITY.sidewalk, center - reach], [CITY.roadLeft, center - reach], [CITY.roadLeft, center + reach], [CITY.roadLeft - CITY.sidewalk, center + reach]], '#aaa79d');
     // Repeating blocks make the entire 6.6 km map feel like a city rather than
     // an empty plane. Only nearby blocks are submitted to each camera.
-    const blocks = [];
+    const blocks = nearbyBuildings(center, reach).map(block => ({ ...block, depth: localPoint(block.x, block.z, camera.yaw, camera.mount).y })).filter(block => block.depth > .4);
     const firstBlock = Math.floor((center - reach) / 28) * 28;
-    for (let z = firstBlock; z < center + reach; z += 28) for (const side of [-1, 1]) {
-      const x = side * 18, depth = localPoint(x, z, camera.yaw, camera.mount).y;
-      if (depth > .4) blocks.push({ x, z, depth, width: 9 + Math.abs((z / 28) % 3), height: 7 + Math.abs((z / 28) % 4) * 1.8, color: side < 0 ? '#766f68' : '#82796e' });
-    }
     blocks.sort((a, b) => b.depth - a.depth).forEach(block => {
-      const base = project3d(block.x, block.z, 0), top = project3d(block.x, block.z, block.height);
-      const left = project3d(block.x - block.width / 2, block.z, 0), right = project3d(block.x + block.width / 2, block.z, 0);
-      if (!base || !top || !left || !right) return;
-      const width = Math.abs(right.x - left.x);
-      ctx.fillStyle = block.color; ctx.fillRect(base.x - width / 2, top.y, width, base.y - top.y);
-      ctx.fillStyle = '#c8b66c'; const floorHeight = Math.max(3, (base.y - top.y) / 8);
-      for (let floor = 1; floor < 7; floor += 2) for (const offset of [-.27, .1]) ctx.fillRect(base.x + width * offset, top.y + floor * floorHeight, Math.max(2, width * .16), Math.max(1, floorHeight * .45));
+      const corners = objectCorners(block), bottom = corners.map(p => project3d(p.x, p.z, 0)), top = corners.map(p => project3d(p.x, p.z, block.height));
+      const face = (points, fill) => { if (points.some(p => !p)) return; ctx.fillStyle = fill; ctx.beginPath(); points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.closePath(); ctx.fill(); };
+      [0, 1, 2, 3].map(i => ({ i, depth: localPoint(corners[i].x, corners[i].z, camera.yaw, camera.mount).y })).sort((a, b) => b.depth - a.depth).forEach(({ i }) => face([bottom[i], bottom[(i + 1) % 4], top[(i + 1) % 4], top[i]], i % 2 ? block.color : '#625c57'));
+      face(top, '#91877a');
     });
     ctx.strokeStyle = '#515854'; ctx.lineWidth = 2;
     for (let z = firstBlock; z < center + reach; z += 4) for (const x of [-CITY.fence, CITY.fence]) {
@@ -303,7 +323,7 @@ function drawBird(canvas) {
   const ctx = canvas.getContext('2d'), w = canvas.clientWidth, h = canvas.clientHeight, dpr = devicePixelRatio || 1;
   if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = '#727b73'; ctx.fillRect(0, 0, w, h);
-  const scale = Math.min(w / 18, h / 20), world = p => ({ x: w / 2 + (p.x - state.x) * scale, y: h / 2 + (p.z - state.z) * scale });
+  const scale = Math.min(w / 34, h / 27), world = p => ({ x: w / 2 + (p.x - state.x) * scale, y: h / 2 + (p.z - state.z) * scale });
   ctx.strokeStyle = '#e9b94c'; ctx.lineWidth = 2;
   if (activeScenario === 'Parking lot') for (const z of BAY.rows) {
     const left = BAY.columns[0] - BAY.width / 2, right = BAY.columns.at(-1) + BAY.width / 2;
@@ -318,6 +338,10 @@ function drawBird(canvas) {
   if (activeScenario === 'Street') {
     const a = world({ x: CITY.roadLeft, z: state.z - 30 }), b = world({ x: CITY.roadLeft, z: state.z + 30 }), c = world({ x: CITY.roadRight, z: state.z - 30 }), d = world({ x: CITY.roadRight, z: state.z + 30 });
     ctx.fillStyle = '#444b4c'; ctx.fillRect(a.x, a.y, c.x - a.x, b.y - a.y); ctx.strokeStyle = '#f0ece0'; ctx.lineWidth = 4; [a, c].forEach((p, i) => { const q = i ? d : b; ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); });
+    ctx.fillStyle = '#aaa79d';
+    [[CITY.roadLeft - CITY.sidewalk, CITY.roadLeft], [CITY.roadRight, CITY.roadRight + CITY.sidewalk]].forEach(([left, right]) => { const p = world({ x: left, z: state.z - 30 }); ctx.fillRect(p.x, p.y, (right - left) * scale, 60 * scale); });
+    nearbyBuildings(state.z, 20).forEach(building => { const p = world({ x: building.x - building.width / 2, z: building.z - building.length / 2 }); ctx.fillStyle = building.color; ctx.fillRect(p.x, p.y, building.width * scale, building.length * scale); ctx.strokeStyle = '#353837'; ctx.strokeRect(p.x, p.y, building.width * scale, building.length * scale); });
+    ctx.strokeStyle = '#515854'; ctx.lineWidth = Math.max(2, scale * .16); [-CITY.fence, CITY.fence].forEach(x => { const p = world({ x, z: state.z - 30 }), q = world({ x, z: state.z + 30 }); ctx.beginPath(); ctx.moveTo(p.x, p.y); ctx.lineTo(q.x, q.y); ctx.stroke(); });
   }
   const target = scenarios[activeScenario].target, t = world(target), targetWidth = activeScenario === 'Street' ? STREET.width : BAY.width, targetLength = activeScenario === 'Street' ? STREET.gapLength : BAY.length;
   ctx.strokeStyle = '#ffe08a'; ctx.lineWidth = 3; ctx.strokeRect(t.x - targetWidth * scale / 2, t.y - targetLength * scale / 2, targetWidth * scale, targetLength * scale);
@@ -382,18 +406,39 @@ document.querySelector('#fov').oninput = e => { state.fov = +e.target.value; doc
 document.querySelector('#height').oninput = e => { state.eyeHeight = +e.target.value; document.querySelector('#heightValue').value = (+e.target.value).toFixed(2); };
 
 let last = performance.now();
+function predictedPose(vehicle, seconds, speed = vehicle.speed) {
+  const heading = vehicle.heading + speed / CAR.wheelbase * Math.tan(vehicle.steer || 0) * seconds;
+  return { ...vehicle, heading, x: vehicle.x + Math.sin(heading) * speed * seconds, z: vehicle.z - Math.cos(heading) * speed * seconds };
+}
+
+function trafficHazard(car) {
+  // Look several seconds ahead instead of waiting for bumper contact. Enlarging
+  // both swept boxes slightly gives oncoming traffic a comfortable stopping gap.
+  const closingWithDriver = Math.abs(car.speed) + Math.abs(state.speed);
+  const horizon = clamp(1.2 + closingWithDriver / 3, 2.2, 4.5);
+  for (let seconds = .25; seconds <= horizon; seconds += .25) {
+    const futureCar = predictedPose(car, seconds);
+    const futureDriver = predictedPose(state, seconds);
+    if (polygonsOverlap(vehicleCorners(futureCar, .7), vehicleCorners(futureDriver, .7))) return { danger: true, seconds };
+  }
+  return { danger: false, seconds: Infinity };
+}
+
 function updateTraffic(dt) {
   if (activeScenario !== 'Street') return;
   traffic.forEach((car, index) => {
     // Every road user uses the same bicycle model as the driver's car.
     const cruise = trafficStarts[index].speed;
     car.steer += (0 - car.steer) * Math.min(1, dt * 4);
+    const hazard = trafficHazard(car);
+    const desiredSpeed = hazard.danger ? (hazard.seconds < 1.15 ? 0 : cruise * clamp((hazard.seconds - 1) / 2.2, 0, 1)) : cruise;
+    car.speed += clamp(desiredSpeed - car.speed, -6.5 * dt, 1.4 * dt);
     const next = { ...car, heading: car.heading + car.speed / CAR.wheelbase * Math.tan(car.steer) * dt };
     next.x += Math.sin(next.heading) * car.speed * dt; next.z -= Math.cos(next.heading) * car.speed * dt;
     const blockers = [...parkedCars(), ...traffic.filter(other => other !== car), state];
-    const crash = blockers.some(other => polygonsOverlap(vehicleCorners(next), vehicleCorners(other, .18)));
+    const crash = blockers.some(other => polygonsOverlap(vehicleCorners(next), vehicleCorners(other, .18))) || mapObstacles(next.z).some(object => polygonsOverlap(vehicleCorners(next), objectCorners(object)));
     if (crash) car.speed = Math.max(0, car.speed - 8 * dt);
-    else { Object.assign(car, { x: next.x, z: next.z, heading: next.heading }); car.speed += (cruise - car.speed) * Math.min(1, dt * 1.4); }
+    else Object.assign(car, { x: next.x, z: next.z, heading: next.heading });
     // Recycle traffic only at the far ends of the full 6.6 km map.
     if (Math.abs(car.z) > CITY.length / 2) car.z = -Math.sign(car.z) * (CITY.length / 2 - 10);
   });
