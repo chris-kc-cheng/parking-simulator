@@ -1,7 +1,7 @@
 const icon = name => `<span class="ico">${({ settings: '⚙', camera: '▣', eye: '◉', left: '‹', right: '›', reset: '↻', info: 'i' })[name]}</span>`;
 
 document.querySelector('#root').innerHTML = `<main>
-  <header><div class="brand"><div class="brandmark"><span></span></div><div><b>PARKING SIMULATOR</b></div></div><nav class="scenarioTabs" aria-label="Choose a parking scenario"><button class="active">Parking lot</button><button>Street</button></nav><div class="topActions"><button id="settings" aria-label="Open settings">${icon('settings')}</button></div></header>
+  <header><div class="brand"><div class="brandmark"><span></span></div><div><b>PARKING SIMULATOR</b><small>6.6 KM CITY • LIVE TRAFFIC</small></div></div><nav class="scenarioTabs" aria-label="Choose a parking scenario"><button>Parking lot</button><button class="active">Street</button></nav><div class="topActions"><button id="settings" aria-label="Open settings">${icon('settings')}</button></div></header>
   <section class="cockpit">
     <div class="mirrorMount left" aria-hidden="true"></div><div class="mirrorMount right" aria-hidden="true"></div>
     <div class="mirror left"><canvas data-view="leftMirror"></canvas><span>OBJECTS IN MIRROR ARE CLOSER THAN THEY APPEAR</span></div>
@@ -11,7 +11,7 @@ document.querySelector('#root').innerHTML = `<main>
     <aside class="miniViews"><div class="monitor" id="camera"><div class="monitorTitle">${icon('camera')} REAR CAMERA <button class="hide">×</button></div><div class="feed"><canvas data-view="rearCamera"></canvas></div></div><div class="monitor" id="bird"><div class="monitorTitle">${icon('eye')} BIRD'S-EYE <button class="hide">×</button></div><div class="feed bird"><canvas data-view="bird"></canvas></div></div><div class="restore"></div></aside>
     <div class="dash"><div class="wheel"><div class="wheelSpoke leftSpoke"></div><div class="wheelSpoke rightSpoke"></div><div class="wheelSpoke lowerSpoke"></div><b></b></div><div class="cluster"><small>SPEED</small><strong>00</strong><span>km/h</span></div><div class="gear">${['P', 'R', 'N', 'D'].map(g => `<button class="${g === 'P' ? 'active' : ''}">${g}</button>`).join('')}</div></div>
   </section>
-  <footer><div class="hint">${icon('info')}<span><b>YOUR GOAL</b> <span id="goalText">Park front-in or back-in inside the highlighted bay without touching another vehicle.</span></span></div><div class="controls"><button data-key="ArrowLeft">${icon('left')}</button><div class="keygroup"><button data-key="ArrowUp">↑</button><small>DRIVE</small></div><div class="keygroup"><button data-key="ArrowDown">↓</button><small>REVERSE</small></div><button data-key="ArrowRight">${icon('right')}</button><button class="reset">${icon('reset')} RESET</button></div></footer>
+  <footer><div class="hint">${icon('info')}<span><b>YOUR GOAL</b> <span id="goalText">Parallel park in the highlighted curbside gap without touching another vehicle.</span></span></div><div class="controls"><button data-key="ArrowLeft">${icon('left')}</button><div class="keygroup"><button data-key="ArrowUp">↑</button><small>DRIVE</small></div><div class="keygroup"><button data-key="ArrowDown">↓</button><small>REVERSE</small></div><button data-key="ArrowRight">${icon('right')}</button><button class="reset">${icon('reset')} RESET</button></div></footer>
   <div class="modalBackdrop" hidden><div class="modal"><button class="close">×</button><h2>Simulation settings</h2><p>Fine-tune the optical behavior of your driving aids.</p><label>Mirror fisheye <b><output id="fishValue">16</output>%</b></label><input id="fish" type="range" value="16" min="0" max="40"><label>Camera field of view <b><output id="fovValue">110</output>°</b></label><input id="fov" type="range" value="110" min="75" max="135"><label>Driver eye height <b><output id="heightValue">1.25</output> m</b></label><input id="height" type="range" value="1.25" min="0.8" max="1.8" step="0.05"><button class="done">APPLY SETTINGS</button></div></div>
 </main>`;
 
@@ -48,7 +48,9 @@ const scenarios = {
   'Parking lot': { x: 0, z: 8, heading: 0, target: { x: BAY.columns[2], z: -15, heading: 0 }, cars: lotCars },
   'Street': { x: 2.5, z: 8, heading: 0, target: { x: 6, z: -21, heading: 0 }, cars: streetCars }
 };
-let activeScenario = 'Parking lot';
+// Open directly in the expanded scene so the city and live traffic are visible
+// without requiring the driver to discover and switch scenario tabs first.
+let activeScenario = 'Street';
 const parkedCars = () => scenarios[activeScenario].cars;
 const visibleCars = () => activeScenario === 'Street' ? [...parkedCars(), ...traffic] : parkedCars();
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -401,8 +403,10 @@ function loop(time) {
   updateTraffic(dt);
   const steerInput = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0);
   const steerTarget = steerInput * CAR.maxSteer;
-  state.steer += clamp(steerTarget - state.steer, -2.2 * dt, 2.2 * dt);
-  if (!steerInput) state.steer *= Math.pow(.08, dt);
+  // A road-car steering rack takes time to travel lock-to-lock. The gentler
+  // rate also keeps the on-screen wheel from snapping around at key-down.
+  state.steer += clamp(steerTarget - state.steer, -.8 * dt, .8 * dt);
+  if (!steerInput) state.steer *= Math.pow(.35, dt);
   let acceleration = 0;
   if (keys.ArrowUp) { state.gear = 'D'; acceleration = 2.7; }
   if (keys.ArrowDown) { state.gear = 'R'; acceleration = -2.2; }
