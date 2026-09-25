@@ -26,8 +26,8 @@ braking early to leave three car lengths between its bumper and your vehicle.
 At intersections, the expanded traffic population can continue straight or choose
 a left or right turn, then settles into the correct right-hand lane under Canadian
 drive-on-right rules. Non-parking traffic remains part of the live movement system;
-if a traffic car stays boxed in for three seconds, it is restarted on its moving route
-instead of becoming a permanent stopped street obstacle.
+when a traffic car is boxed in, it stays stopped in place and resumes naturally once
+its route clears instead of disappearing and restarting elsewhere.
 The cross street directly ahead of the learner's starting parking bay also has
 eastbound and westbound live traffic, making movement visible immediately.
 The windshield renders at 30 FPS while mirrors and camera panels refresh at
@@ -72,7 +72,10 @@ acceleration. The transmission changes direction only after the car stops.
 
 Watch the side mirrors and rear-view mirror as you maneuver. The rear camera
 includes parking guides, while the bird's-eye camera helps you judge the car's
-position between the lines. Drag the mirrors and camera panels to move them;
+position between the lines. Its default **Heading Up** mode fixes the car in the
+center with its nose pointing upward while the map moves and rotates around it.
+Use the camera's mode button to switch to the original **North Up** view, where
+the map keeps a fixed orientation. Drag the mirrors and camera panels to move them;
 camera panels can also be hidden and restored.
 Use the combined camera button to disable or restore the rear and bird's-eye
 panels together.

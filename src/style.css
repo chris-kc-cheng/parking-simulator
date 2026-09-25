@@ -39,6 +39,7 @@
 #bird{left:auto;right:18px;top:auto;bottom:2%}
 @media(min-width:801px) and (max-width:1100px){#camera{left:auto;right:226px}#bird{left:auto;right:12px}.gear{left:29%}}
 @media(max-width:800px){.gear{left:24%;right:auto;top:58%}#camera{left:auto;right:142px;top:auto;bottom:2%}#bird{left:auto;right:8px;top:auto;bottom:2%}}
+.monitorTitle .birdMode{margin-left:auto;border:1px solid #555;padding:3px 5px;color:#d5b574;font:7px DM Mono}.monitorTitle .birdMode+.hide{margin-left:2px}
 
 /* Upright A-pillars and a higher mirror line preserve the driver's road view. */
 .windshield{clip-path:polygon(9% 0,91% 0,91% 84%,9% 84%)}

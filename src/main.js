@@ -8,7 +8,7 @@ document.querySelector('#root').innerHTML = `<main>
     <div class="rearMirrorStem" aria-hidden="true"></div><div class="rearMirror"><canvas data-view="rearMirror"></canvas></div>
     <div class="mirror right"><canvas data-view="rightMirror"></canvas></div>
     <div class="windshield"><canvas data-view="front"></canvas><canvas class="weatherGlass" aria-hidden="true"></canvas><div class="wipers off" aria-hidden="true"><i class="left"></i><i class="right"></i></div><div class="impact" hidden>OBSTACLE — VEHICLE STOPPED</div></div>
-    <aside class="miniViews"><div class="monitor" id="camera"><div class="monitorTitle">${icon('camera')} REAR CAMERA <button class="hide">×</button></div><div class="feed"><canvas data-view="rearCamera"></canvas></div></div><div class="monitor" id="bird"><div class="monitorTitle">${icon('eye')} BIRD'S-EYE <button class="hide">×</button></div><div class="feed bird"><canvas data-view="bird"></canvas></div></div><div class="restore"></div></aside>
+    <aside class="miniViews"><div class="monitor" id="camera"><div class="monitorTitle">${icon('camera')} REAR CAMERA <button class="hide">×</button></div><div class="feed"><canvas data-view="rearCamera"></canvas></div></div><div class="monitor" id="bird"><div class="monitorTitle">${icon('eye')} BIRD'S-EYE <button class="birdMode" aria-label="Switch to north-up bird's-eye view" aria-pressed="true">HEADING UP</button><button class="hide">×</button></div><div class="feed bird"><canvas data-view="bird"></canvas></div></div><div class="restore"></div></aside>
     <div class="dash"><div class="turnStalk" aria-label="Turn-signal stalk"><i></i></div><div class="wiperStalk" aria-label="Windshield-wiper stalk"><i></i></div><div class="wheel"><div class="wheelSpoke leftSpoke"></div><div class="wheelSpoke rightSpoke"></div><div class="wheelSpoke lowerSpoke"></div><button class="horn" aria-label="Honk horn"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 27h10l20-12v34L20 37H10zM40 25h6a8 8 0 0 1 0 16h-6"/><path class="sound" d="M51 20l5-5M54 32h7M51 44l5 5"/></svg></button></div><div class="cluster"><i class="turnIndicator left">◀</i><i class="turnIndicator right">▶</i><strong>00</strong><span>km/h</span></div><div class="gear">${['P', 'R', 'N', 'D'].map(g => `<button class="${g === 'P' ? 'active' : ''}">${g}</button>`).join('')}</div></div>
   </section>
   <footer><div class="utilityControls" role="group" aria-label="Settings, weather, headlamps, cameras, and reset"><button id="settings" class="footerSettings" aria-label="Open settings">${icon('settings')} <small>SETTINGS</small></button><button data-weather="0" aria-label="Sunny weather">☀ <small>SUNNY</small></button><button data-weather="1" aria-label="Rainy weather">☂ <small>RAIN</small></button><button data-weather="2" aria-label="Night weather">☾ <small>NIGHT</small></button><button class="headlampToggle" aria-label="Turn headlamps on" aria-pressed="false">◖ <small>HEADLAMP OFF</small></button><button class="camerasToggle active" aria-label="Disable both cameras" aria-pressed="true">▣ <small>CAMERAS ON</small></button><button class="reset">${icon('reset')} <small>RESET</small></button></div><div class="controls"><button data-signal="left" aria-label="Left turn signal">◀ <small>L</small></button><button data-signal="right" aria-label="Right turn signal">▶ <small>R</small></button><button class="wiperControl" aria-label="Cycle windshield wipers">⌁ <small>W · OFF</small></button><button data-key="ArrowLeft">${icon('left')}</button><div class="keygroup"><button data-key="ArrowUp" aria-label="Drive forward">↑</button></div><div class="keygroup"><button data-key="ArrowDown" aria-label="Reverse">↓</button></div><button data-key="ArrowRight">${icon('right')}</button></div></footer>
@@ -16,7 +16,7 @@ document.querySelector('#root').innerHTML = `<main>
 </main>`;
 
 // The vehicle pose below is the single source of truth for every rendered view.
-const state = { x: 0, z: 8, heading: 0, speed: 0, steer: 0, gear: 'P', fisheye: 16, fov: 110, eyeHeight: 1.25, impactUntil: 0, signal: null, signalOn: false, signalNextTick: 0, wiperMode: 0, weather: 0, headlights: false };
+const state = { x: 0, z: 8, heading: 0, speed: 0, steer: 0, gear: 'P', fisheye: 16, fov: 110, eyeHeight: 1.25, impactUntil: 0, signal: null, signalOn: false, signalNextTick: 0, wiperMode: 0, weather: 0, headlights: false, birdHeadingUp: true };
 const keys = {};
 const CAR = { width: 1.82, length: 4.45, height: 1.48, wheelbase: 2.7, maxSteer: 32 * Math.PI / 180, forwardAcceleration: 3.2, reverseAcceleration: 2.2, brakeDeceleration: 8 };
 // The old scene ended after 66 m. This six-and-a-half kilometre city is 100× longer.
@@ -596,6 +596,10 @@ function drawBird(canvas) {
   const ctx = canvas.getContext('2d'), w = canvas.clientWidth, h = canvas.clientHeight, dpr = devicePixelRatio || 1;
   if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = '#727b73'; ctx.fillRect(0, 0, w, h);
+  // Turn the world around the centered learner car. This cancels the car's
+  // heading on screen, keeping its nose pointed toward the top of the panel.
+  ctx.save();
+  if (state.birdHeadingUp) { ctx.translate(w / 2, h / 2); ctx.rotate(-state.heading); ctx.translate(-w / 2, -h / 2); }
   const scale = Math.min(w / 34, h / 27), world = p => ({ x: w / 2 + (p.x - state.x) * scale, y: h / 2 + (p.z - state.z) * scale });
   ctx.strokeStyle = '#e9b94c'; ctx.lineWidth = 2;
   PARKING_LOTS.forEach(lot => lot.rows.forEach(z => {
@@ -647,6 +651,7 @@ function drawBird(canvas) {
   [-1, 1].forEach(direction => { ctx.strokeStyle = direction > 0 ? '#63d67a' : '#ed5f59'; ctx.setLineDash([5, 4]); projectedTracks(direction).forEach(path => { ctx.beginPath(); path.forEach((p, i) => { const q = world(p); i ? ctx.lineTo(q.x, q.y) : ctx.moveTo(q.x, q.y); }); ctx.stroke(); }); }); ctx.setLineDash([]);
   visibleCars().forEach(car => { const p = world(car); drawTopCar(ctx, p.x, p.y, scale, car.heading, car.color, false, car.steer || 0, car.type, traffic.includes(car)); });
   drawTopCar(ctx, w / 2, h / 2, scale, state.heading, '#d5b58b', true, state.steer, 'car', true);
+  ctx.restore();
 }
 
 function renderDash() {
@@ -788,6 +793,13 @@ function wiperMotorClick(mode) {
   osc.connect(filter); filter.connect(gain); gain.connect(hornAudio.destination); osc.start(now); osc.stop(now + .15);
 }
 const cameraPanels = [...document.querySelectorAll('.monitor')], cameraToggle = document.querySelector('.camerasToggle'), restore = document.querySelector('.restore');
+const birdMode = document.querySelector('.birdMode');
+birdMode.onclick = () => {
+  state.birdHeadingUp = !state.birdHeadingUp;
+  birdMode.textContent = state.birdHeadingUp ? 'HEADING UP' : 'NORTH UP';
+  birdMode.setAttribute('aria-pressed', state.birdHeadingUp);
+  birdMode.setAttribute('aria-label', `Switch to ${state.birdHeadingUp ? 'north-up' : 'heading-up'} bird's-eye view`);
+};
 function renderCameraToggle() {
   const allVisible = cameraPanels.every(panel => !panel.hidden), allHidden = cameraPanels.every(panel => panel.hidden);
   cameraToggle.classList.toggle('active', allVisible); cameraToggle.setAttribute('aria-pressed', allVisible);
@@ -924,10 +936,8 @@ function updateTraffic(dt) {
     const crash = blockers.some(other => polygonsOverlap(vehicleCorners(next), other === state ? vehicleCorners(other, .4, CAR.length * 6) : vehicleCorners(other, .18))) || mapObstacles(next.z).some(object => polygonsOverlap(vehicleCorners(next), obstaclePolygon(object)));
     if (crash) car.speed = Math.max(0, car.speed - 8 * dt);
     else Object.assign(car, { x: next.x, z: next.z, heading: next.heading });
-    car.stoppedFor = car.speed < .15 ? (car.stoppedFor || 0) + dt : 0;
-    // A traffic vehicle that remains boxed in is recycled to its moving route
-    // instead of becoming a permanent non-parking street obstacle.
-    if (car.stoppedFor > 3) { Object.assign(car, trafficStarts[index], { movingTraffic: true, stoppedFor: 0, speed: cruise }); }
+    // Keep blocked traffic in the world. Resetting a car after a few seconds
+    // made it visibly disappear from cameras while the driver was watching it.
     // Recycle both north/south and east/west traffic at the city boundary.
     if (Math.abs(car.z) > CITY.length / 2) car.z = -Math.sign(car.z) * (CITY.length / 2 - 10);
     if (Math.abs(car.x) > CITY.length / 2) car.x = -Math.sign(car.x) * (CITY.length / 2 - 10);
