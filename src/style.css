@@ -34,3 +34,10 @@ header .scenarioTabs button{font-size:10px;padding:10px 16px;white-space:nowrap}
 .mirror.dragging,.rearMirror.dragging,.monitor.dragging{cursor:grabbing}
 @media(min-width:801px) and (max-width:1100px){.monitor{width:200px}.feed{height:135px}#camera{left:calc(50% - 207px)}#bird{left:calc(50% + 7px)}}
 @media(max-width:800px){#camera{top:50%;left:calc(50% - 130px);right:auto}#bird{top:50%;left:calc(50% + 5px);right:auto;display:block}.restore{right:8px;top:78%}}
+
+/* Driver controls read left-to-right: wheel, selector, speed, then cameras. */
+.gear{left:31%;right:auto;top:28%}
+#camera{left:auto;right:272px;top:auto;bottom:2%}
+#bird{left:auto;right:18px;top:auto;bottom:2%}
+@media(min-width:801px) and (max-width:1100px){#camera{left:auto;right:226px}#bird{left:auto;right:12px}.gear{left:29%}}
+@media(max-width:800px){.gear{left:24%;right:auto;top:58%}#camera{left:auto;right:142px;top:auto;bottom:2%}#bird{left:auto;right:8px;top:auto;bottom:2%}}
