@@ -1,3 +1,5 @@
+import { createDrivingInput } from './driving-input.mjs';
+
 const icon = name => `<span class="ico">${({ settings: '⚙', camera: '▣', eye: '◉', left: '‹', right: '›', reset: '↻', info: 'i' })[name]}</span>`;
 
 document.querySelector('#root').innerHTML = `<main>
@@ -11,7 +13,8 @@ document.querySelector('#root').innerHTML = `<main>
     <aside class="miniViews"><div class="monitor" id="camera"><div class="monitorTitle">${icon('camera')} REAR CAMERA <button class="hide">×</button></div><div class="feed"><canvas data-view="rearCamera"></canvas></div></div><div class="monitor" id="bird"><div class="monitorTitle">${icon('eye')} BIRD'S-EYE <button class="hide">×</button></div><div class="feed bird"><canvas data-view="bird"></canvas></div></div><div class="restore"></div></aside>
     <div class="dash"><div class="turnStalk" aria-label="Turn-signal stalk"><i></i></div><div class="wiperStalk" aria-label="Windshield-wiper stalk"><i></i></div><div class="wheel"><div class="wheelSpoke leftSpoke"></div><div class="wheelSpoke rightSpoke"></div><div class="wheelSpoke lowerSpoke"></div><button class="horn" aria-label="Honk horn"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M10 27h10l20-12v34L20 37H10zM40 25h6a8 8 0 0 1 0 16h-6"/><path class="sound" d="M51 20l5-5M54 32h7M51 44l5 5"/></svg></button></div><div class="cluster"><i class="turnIndicator left">◀</i><i class="turnIndicator right">▶</i><strong>00</strong><span>km/h</span></div><div class="gear">${['P', 'R', 'N', 'D'].map(g => `<button class="${g === 'P' ? 'active' : ''}">${g}</button>`).join('')}</div></div>
   </section>
-  <footer><div class="utilityControls" role="group" aria-label="Settings, weather, headlamps, cameras, and reset"><button id="settings" class="footerSettings" aria-label="Open settings">${icon('settings')} <small>SETTINGS</small></button><button data-weather="0" aria-label="Sunny weather">☀ <small>SUNNY</small></button><button data-weather="1" aria-label="Rainy weather">☂ <small>RAIN</small></button><button data-weather="2" aria-label="Night weather">☾ <small>NIGHT</small></button><button class="headlampToggle" aria-label="Turn headlamps on" aria-pressed="false">◖ <small>HEADLAMP OFF</small></button><button class="camerasToggle active" aria-label="Disable both cameras" aria-pressed="true">▣ <small>CAMERAS ON</small></button><button class="reset">${icon('reset')} <small>RESET</small></button></div><div class="controls"><button data-signal="left" aria-label="Left turn signal">◀ <small>L</small></button><button data-signal="right" aria-label="Right turn signal">▶ <small>R</small></button><button class="wiperControl" aria-label="Cycle windshield wipers">⌁ <small>W · OFF</small></button><button data-key="ArrowLeft">${icon('left')}</button><div class="keygroup"><button data-key="ArrowUp" aria-label="Drive forward">↑</button></div><div class="keygroup"><button data-key="ArrowDown" aria-label="Reverse">↓</button></div><button data-key="ArrowRight">${icon('right')}</button></div></footer>
+  <footer><button class="mobileTools" aria-label="Show driving tools" aria-expanded="false">☰ <small>TOOLS</small></button><div class="utilityControls" role="group" aria-label="Settings, weather, headlamps, cameras, and reset"><button id="settings" class="footerSettings" aria-label="Open settings">${icon('settings')} <small>SETTINGS</small></button><button data-weather="0" aria-label="Sunny weather">☀ <small>SUNNY</small></button><button data-weather="1" aria-label="Rainy weather">☂ <small>RAIN</small></button><button data-weather="2" aria-label="Night weather">☾ <small>NIGHT</small></button><button class="headlampToggle" aria-label="Turn headlamps on" aria-pressed="false">◖ <small>HEADLAMP OFF</small></button><button class="camerasToggle active" aria-label="Disable both cameras" aria-pressed="true">▣ <small>CAMERAS ON</small></button><button class="reset">${icon('reset')} <small>RESET</small></button></div><div class="controls"><button data-signal="left" aria-label="Left turn signal">◀ <small>L</small></button><button data-signal="right" aria-label="Right turn signal">▶ <small>R</small></button><button class="wiperControl" aria-label="Cycle windshield wipers">⌁ <small>W · OFF</small></button><button class="steering" data-key="ArrowLeft" aria-label="Steer left">${icon('left')}</button><div class="keygroup"><button data-key="ArrowUp" aria-label="Drive forward or brake while reversing">↑ <small>FWD</small></button></div><div class="keygroup"><button data-key="ArrowDown" aria-label="Reverse or brake while driving forward">↓ <small>REV</small></button></div><button class="brakeControl" data-key=" " aria-label="Hold service brake">BRAKE</button><button class="steering" data-key="ArrowRight" aria-label="Steer right">${icon('right')}</button></div></footer>
+  <div class="rotateHint" role="status"><b>Rotate to landscape</b><span>Turn your phone sideways to drive with both thumbs.</span></div>
   <div class="modalBackdrop" hidden><div class="modal"><button class="close">×</button><h2>Simulation settings</h2><p>Fine-tune the optical behavior of your driving aids.</p><label>Mirror fisheye <b><output id="fishValue">16</output>%</b></label><input id="fish" type="range" value="16" min="0" max="40"><label>Camera field of view <b><output id="fovValue">110</output>°</b></label><input id="fov" type="range" value="110" min="75" max="135"><label>Driver eye height <b><output id="heightValue">1.25</output> m</b></label><input id="height" type="range" value="1.25" min="0.8" max="1.8" step="0.05"><button class="done">APPLY SETTINGS</button></div></div>
 </main>`;
 
@@ -171,6 +174,7 @@ function mapObstacles(center = state.z, reach = 24) {
 }
 
 function reset() {
+  drivingInput.clear();
   Object.assign(state, { x: TARGET.x, z: TARGET.z, heading: TARGET.heading, speed: 0, steer: 0, gear: 'P', impactUntil: 0, signal: null, signalOn: false, signalNextTick: 0, wiperMode: 0, weather: 0, headlights: false });
   renderWipers();
   renderWeather();
@@ -357,8 +361,9 @@ function cameraDefinition(view) {
 }
 
 function drawPerspective(canvas, view) {
-  const ctx = canvas.getContext('2d'), w = canvas.clientWidth, h = canvas.clientHeight, dpr = devicePixelRatio || 1;
-  if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+  const ctx = canvas.getContext('2d'), w = canvas.clientWidth, h = canvas.clientHeight, dpr = Math.min(devicePixelRatio || 1, 2);
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+  if (!w || !h) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, w, h);
   const camera = cameraDefinition(view), horizon = h * (camera.horizon ?? .48);
   const cameraX = state.x + Math.sin(state.heading) * camera.mount;
@@ -593,8 +598,9 @@ function drawPerspective(canvas, view) {
 }
 
 function drawBird(canvas) {
-  const ctx = canvas.getContext('2d'), w = canvas.clientWidth, h = canvas.clientHeight, dpr = devicePixelRatio || 1;
-  if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+  const ctx = canvas.getContext('2d'), w = canvas.clientWidth, h = canvas.clientHeight, dpr = Math.min(devicePixelRatio || 1, 2);
+  if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+  if (!w || !h) return;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.fillStyle = '#727b73'; ctx.fillRect(0, 0, w, h);
   const scale = Math.min(w / 34, h / 27), world = p => ({ x: w / 2 + (p.x - state.x) * scale, y: h / 2 + (p.z - state.z) * scale });
   ctx.strokeStyle = '#e9b94c'; ctx.lineWidth = 2;
@@ -657,16 +663,27 @@ function renderDash() {
   document.querySelectorAll('[data-signal]').forEach(button => button.classList.toggle('active', button.dataset.signal === state.signal));
 }
 
+const portraitPhone = matchMedia('(orientation: portrait) and (max-width: 600px)');
+const drivingInput = createDrivingInput(keys, [...document.querySelectorAll('[data-key]')], {
+  canDrive: () => document.querySelector('.modalBackdrop').hidden && !portraitPhone.matches,
+});
 addEventListener('keydown', e => {
-  keys[e.key] = true;
+  if (!document.querySelector('.modalBackdrop').hidden || e.target.closest?.('input,textarea,select')) return;
   const signalKey = e.key.toLowerCase();
   if (!e.repeat && (signalKey === 'l' || signalKey === 'r')) toggleSignal(signalKey === 'l' ? 'left' : 'right');
   if (!e.repeat && signalKey === 'w') cycleWipers();
-  if (e.key.startsWith('Arrow')) e.preventDefault();
 });
-addEventListener('keyup', e => { keys[e.key] = false; });
-document.querySelectorAll('[data-key]').forEach(button => { const set = value => keys[button.dataset.key] = value; button.onpointerdown = e => { button.setPointerCapture(e.pointerId); set(true); }; button.onpointerup = button.onpointercancel = () => set(false); });
-document.querySelectorAll('.gear button').forEach(button => button.onclick = () => { state.gear = button.textContent; state.speed = 0; renderDash(); });
+const mobileTools = document.querySelector('.mobileTools');
+function closeTools() {
+  document.querySelector('main').classList.remove('tools-open');
+  mobileTools.setAttribute('aria-expanded', 'false');
+}
+mobileTools.onclick = () => {
+  drivingInput.clear();
+  const open = document.querySelector('main').classList.toggle('tools-open');
+  mobileTools.setAttribute('aria-expanded', String(open));
+};
+document.querySelectorAll('.gear button').forEach(button => button.onclick = () => { drivingInput.clear(); state.gear = button.textContent; state.speed = 0; renderDash(); });
 document.querySelector('.reset').onclick = reset;
 const headlampToggle = document.querySelector('.headlampToggle');
 function renderHeadlamps() {
@@ -751,7 +768,7 @@ function wiperPose(time) {
   return { left: sweep, right: Math.min(1.54, sweep * 1.02), moving: true };
 }
 function renderWeatherGlass(time, dt) {
-  const canvas = document.querySelector('.weatherGlass'), box = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  const canvas = document.querySelector('.weatherGlass'), box = canvas.getBoundingClientRect(), dpr = Math.min(devicePixelRatio || 1, 2);
   if (canvas.width !== Math.round(box.width * dpr) || canvas.height !== Math.round(box.height * dpr)) { canvas.width = Math.round(box.width * dpr); canvas.height = Math.round(box.height * dpr); }
   const ctx = canvas.getContext('2d'), width = box.width, height = box.height;
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, width, height);
@@ -809,11 +826,13 @@ cameraToggle.onclick = () => {
 };
 
 const cockpit = document.querySelector('.cockpit');
+const compactLayout = matchMedia('(max-width: 1100px), (max-height: 600px), (pointer: coarse)');
 const movableWindows = [...document.querySelectorAll('.mirror,.rearMirror,.monitor')];
+const stopWindowDrags = [];
 movableWindows.forEach(panel => {
   let drag = null;
   panel.addEventListener('pointerdown', event => {
-    if (event.target.closest('button')) return;
+    if (event.target.closest('button') || compactLayout.matches) return;
     const panelRect = panel.getBoundingClientRect();
     drag = { pointerId: event.pointerId, offsetX: event.clientX - panelRect.left, offsetY: event.clientY - panelRect.top };
     panel.setPointerCapture(event.pointerId);
@@ -836,19 +855,42 @@ movableWindows.forEach(panel => {
     else if (!overlaps(area.left + x, current.top)) setPosition(area.left + x, current.top);
     else if (!overlaps(current.left, area.top + y)) setPosition(current.left, area.top + y);
   });
-  const endDrag = event => { if (drag?.pointerId !== event.pointerId) return; drag = null; panel.classList.remove('dragging'); };
+  const endDrag = event => {
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const pointerId = drag.pointerId;
+    drag = null;
+    if (panel.hasPointerCapture(pointerId)) panel.releasePointerCapture(pointerId);
+    panel.classList.remove('dragging');
+  };
+  stopWindowDrags.push(() => { if (drag) endDrag({ pointerId: drag.pointerId }); });
   panel.addEventListener('pointerup', endDrag);
   panel.addEventListener('pointercancel', endDrag);
+  panel.addEventListener('lostpointercapture', endDrag);
 });
 
 const modal = document.querySelector('.modalBackdrop');
-document.querySelector('#settings').onclick = () => { modal.hidden = false; };
+document.querySelector('#settings').onclick = () => { drivingInput.clear(); state.speed = 0; closeTools(); modal.hidden = false; };
+addEventListener('keydown', event => { if (event.key === 'Escape') { modal.hidden = true; closeTools(); } });
 document.querySelectorAll('.close,.done').forEach(button => button.onclick = () => { modal.hidden = true; });
 modal.onclick = e => { if (e.target === modal) modal.hidden = true; };
 document.querySelector('#fish').oninput = e => { state.fisheye = +e.target.value; document.querySelector('#fishValue').value = e.target.value; };
 document.querySelector('#fov').oninput = e => { state.fov = +e.target.value; document.querySelector('#fovValue').value = e.target.value; };
 document.querySelector('#height').oninput = e => { state.eyeHeight = +e.target.value; document.querySelector('#heightValue').value = (+e.target.value).toFixed(2); };
 
+// Clear stale holds and dragged pixel positions when the viewport changes.
+// CSS handles dynamic browser chrome and safe-area sizing; no orientation lock.
+function resetViewport() {
+  drivingInput.clear();
+  stopWindowDrags.forEach(stop => stop());
+  movableWindows.forEach(panel => {
+    for (const property of ['left', 'top', 'right', 'z-index']) panel.style.removeProperty(property);
+    panel.classList.remove('dragging');
+  });
+  if (portraitPhone.matches) state.speed = 0;
+}
+addEventListener('resize', resetViewport);
+window.visualViewport?.addEventListener('resize', resetViewport);
+portraitPhone.addEventListener('change', resetViewport);
 let last = performance.now();
 let captureFrames = 0;
 let lastFrontRender = 0, lastAuxRender = 0;
@@ -947,13 +989,17 @@ function loop(time) {
   state.steer += clamp(steerTarget - state.steer, -.8 * dt, .8 * dt);
   if (!steerInput) state.steer *= Math.pow(.35, dt);
   let acceleration = 0, braking = false;
-  if (keys.ArrowUp) {
+  if (keys.ArrowUp && !keys.ArrowDown && !keys[' ']) {
     if (state.speed < 0) { state.speed = Math.min(0, state.speed + CAR.brakeDeceleration * dt); braking = true; }
     else { state.gear = 'D'; acceleration = CAR.forwardAcceleration; }
   }
-  if (keys.ArrowDown) {
+  if (keys.ArrowDown && !keys.ArrowUp && !keys[' ']) {
     if (state.speed > 0) { state.speed = Math.max(0, state.speed - CAR.brakeDeceleration * dt); braking = true; }
     else { state.gear = 'R'; acceleration = -CAR.reverseAcceleration; }
+  }
+  if (keys[' '] || (keys.ArrowUp && keys.ArrowDown)) {
+    state.speed -= Math.sign(state.speed) * Math.min(Math.abs(state.speed), CAR.brakeDeceleration * dt);
+    braking = true;
   }
   if (braking) acceleration = 0;
   else if (state.gear === 'P' || state.gear === 'N') state.speed *= Math.pow(.005, dt);
@@ -991,3 +1037,4 @@ function loop(time) {
   if (!new URLSearchParams(location.search).has('capture') || ++captureFrames < 2) requestAnimationFrame(loop);
 }
 reset(); requestAnimationFrame(loop);
+

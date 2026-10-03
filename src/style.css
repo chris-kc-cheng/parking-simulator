@@ -190,3 +190,128 @@ footer{justify-content:space-between}
 .cluster{left:36%;top:12%}
 .gear{left:36%;top:62%;width:140px;justify-content:center}
 @media(max-width:800px){.cluster{left:36%;top:12%}.gear{left:36%;top:65%;width:90px}}
+
+
+/* Keep the complete driving surface inside the visible browser viewport. */
+html,body,#root{width:100%;height:100%;overscroll-behavior:none}
+main{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+.cockpit{flex:1 1 auto;height:auto;min-height:0}
+footer{flex:0 0 auto}
+button{-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:focus-visible{outline:2px solid #efd399;outline-offset:2px}
+.controls [data-key],.horn{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.controls [data-key].held{color:#1b1d1b;background:#d0ab68;border-color:#efd399;box-shadow:inset 0 0 0 2px #f2d59e55}
+.controls .brakeControl{font:700 9px DM Mono;padding:0 9px;color:#edc9a2;border-color:#78644f}
+.keygroup button small{display:block;font:7px DM Mono;line-height:1.2;color:inherit}
+.mobileTools,.rotateHint{display:none}
+.modalBackdrop{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(12px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+.modal{max-height:100%;overflow:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.modal .close{width:44px;height:44px;right:4px;top:4px;font-size:24px}
+.modal input[type="range"]{min-height:44px;margin:0;touch-action:pan-x}
+.modal .done{min-height:44px}
+
+/* Phones and tablets: two thumb zones with an expandable accessory shelf.
+   Dashboard, mirrors and both live cameras remain visible without page scroll. */
+@media(max-width:1100px),(max-height:600px),(pointer:coarse){
+  main{
+    --safe-left:max(8px,env(safe-area-inset-left));
+    --safe-right:max(8px,env(safe-area-inset-right));
+    --safe-bottom:env(safe-area-inset-bottom,0px);
+    --wheel-size:clamp(84px,18vh,156px);
+    --camera-width:clamp(108px,calc((100vw - var(--safe-left) - var(--safe-right) - var(--wheel-size) - 224px)/2),200px);
+  }
+  .cockpit{height:auto;min-height:0}
+  .windshieldBrand{left:var(--safe-left);top:max(8px,env(safe-area-inset-top));transform:none}
+  .windshieldBrand b{font-size:9px;letter-spacing:1.4px}
+  .cockpit:after{box-shadow:inset 0 0 35px #0007}
+  .rearMirror{width:28%;left:36%;top:max(6px,env(safe-area-inset-top));height:clamp(44px,13%,76px);border-width:4px;border-radius:5px}
+  .rearMirrorStem{left:49%;width:2%;height:6%}
+  .mirror{top:18%;width:20%;height:clamp(44px,23%,106px);border-width:4px}
+  .mirror.left{left:var(--safe-left)}
+  .mirror.right{right:var(--safe-right)}
+  .mirror span{font-size:4px;bottom:3px}
+  .mirrorMount{top:35%;width:12%;height:43%}
+  .dash{bottom:0;height:clamp(94px,24vh,184px);border-radius:30% 30% 0 0/12% 12% 0 0}
+  .dash:after{bottom:4px}
+  .wheel{left:var(--safe-left);top:auto;bottom:6px;width:var(--wheel-size);height:var(--wheel-size);border-width:9px}
+  .wheel:before{top:-8px;height:8px;width:4px}
+  .wheel:after{width:48px;height:48px;border-width:3px}
+  .wheelSpoke{top:calc(50% - 9px)!important;height:18px!important}
+  .wheelSpoke.lowerSpoke{left:calc(50% - 12px)!important;top:48%!important;width:24px!important;height:50%!important}
+  .wheel .horn{width:48px;height:48px;border:0;padding:0}
+  .wheel .horn svg{width:27px;height:27px}
+  .turnStalk,.wiperStalk{display:none}
+  .cluster{left:calc(var(--safe-left) + var(--wheel-size) + 12px);top:auto;bottom:58px;width:74px;height:40px;padding:4px 12px 11px;border-radius:14px}
+  .cluster strong{font-size:25px;line-height:1}
+  .cluster span{bottom:3px;font-size:7px}
+  .turnIndicator{top:12px;font-size:9px}
+  .turnIndicator.left{left:5px}.turnIndicator.right{right:5px}
+  .gear{left:calc(var(--safe-left) + var(--wheel-size) + 12px);top:auto;bottom:6px;width:auto;padding:2px;gap:3px;border:1px solid #454b44;border-radius:5px}
+  .gear button{width:44px;min-width:44px;height:44px;font-size:12px;border-radius:2px}
+  .miniViews{display:contents}
+  .monitor{width:var(--camera-width);padding:3px;border-radius:5px;box-shadow:0 4px 10px #0008}
+  #camera{top:auto;left:auto;right:calc(var(--safe-right) + var(--camera-width) + 6px);bottom:6px}
+  #bird{display:block;top:auto;left:auto;right:var(--safe-right);bottom:6px}
+  .monitorTitle{height:44px;gap:3px;font-size:7px;white-space:nowrap}
+  .monitorTitle .ico{font-size:10px}
+  .monitorTitle button{width:44px;min-width:44px;height:44px;flex:0 0 44px;margin-left:auto;font-size:22px;display:grid;place-items:center;color:#e0e3df;touch-action:manipulation}
+  .feed{height:clamp(54px,16vh,118px)}
+  .restore{top:auto;bottom:6px;right:var(--safe-right);flex-direction:row;gap:6px;max-width:calc(2 * var(--camera-width) + 6px);flex-wrap:wrap}
+  .restore button{min-width:44px;min-height:44px;font-size:9px;padding:7px;background:#202720;border-color:#777f71}
+  .impact{top:28%;max-width:60%;padding:7px 10px;font-size:8px;text-align:center}
+  footer{
+    height:calc(68px + var(--safe-bottom));
+    padding:8px var(--safe-right) calc(8px + var(--safe-bottom)) var(--safe-left);
+    display:grid;grid-template-columns:56px 56px minmax(72px,1fr) 60px 60px 60px;gap:8px;
+    align-items:center;justify-content:normal;border-top:1px solid #474b45;
+  }
+  .controls{display:contents}
+  .hint{display:none}
+  .controls>button,.keygroup button{height:52px;min-width:44px;border-radius:6px}
+  .controls>.steering{width:56px;font-size:32px;line-height:1}
+  .controls>[data-key="ArrowLeft"]{grid-column:1;grid-row:1}
+  .controls>[data-key="ArrowRight"]{grid-column:2;grid-row:1}
+  .keygroup{height:52px;width:60px;grid-row:1}
+  .controls .keygroup:nth-of-type(1){grid-column:4}
+  .controls .keygroup:nth-of-type(2){grid-column:5}
+  .keygroup button{width:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:21px;line-height:1.1;gap:3px}
+  .keygroup button small{font-size:8px;color:#d7dbd6;margin:0}
+  .controls .brakeControl{grid-column:6;grid-row:1;width:60px;font-size:9px;background:#382b24;border-color:#987657}
+  .mobileTools{grid-column:3;grid-row:1;justify-self:center;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:72px;height:48px;padding:4px 6px;background:#252a25;border:1px solid #666b5c;border-radius:6px;font:18px DM Mono;color:#dfcca6}
+  .mobileTools .ico{font-size:18px}
+  .mobileTools small{font:8px DM Mono}
+  .mobileTools[aria-expanded="true"]{background:#d0ab68;color:#181a17;border-color:#efcf93}
+  .utilityControls,.controls>[data-signal],.controls>.wiperControl{display:none}
+  main.tools-open footer:before{content:'';position:absolute;left:0;right:0;bottom:100%;height:116px;background:#171c18f5;border-top:1px solid #686e60;box-shadow:0 -8px 24px #0009;pointer-events:none}
+  main.tools-open .utilityControls{display:grid;grid-template-columns:repeat(7,minmax(64px,1fr));grid-auto-rows:46px;gap:6px;position:absolute;left:var(--safe-left);right:var(--safe-right);bottom:calc(100% + 54px);height:54px;overflow-x:auto;overflow-y:hidden;overscroll-behavior-x:contain;scrollbar-width:thin;-webkit-overflow-scrolling:touch}
+  .utilityControls button,.utilityControls [data-weather]{min-width:44px;width:100%;height:46px;padding:3px;gap:2px;flex-direction:column;align-items:center;justify-content:center;border:1px solid #535b50;border-radius:4px!important;font-size:15px}
+  .utilityControls small{display:block;font-size:7px;letter-spacing:0;white-space:nowrap}
+  main.tools-open .controls>[data-signal],main.tools-open .controls>.wiperControl{display:flex;align-items:center;justify-content:center;position:absolute;bottom:calc(100% + 8px);height:46px;gap:5px;background:#252d26}
+  main.tools-open .controls>[data-signal="left"]{left:var(--safe-left);width:58px}
+  main.tools-open .controls>[data-signal="right"]{left:calc(var(--safe-left) + 64px);width:58px}
+  main.tools-open .controls>.wiperControl{left:calc(var(--safe-left) + 128px);width:112px;font-size:18px}
+  .controls>button small{font-size:8px}
+  .modal{padding:20px 24px;width:min(430px,100%)}
+  .modal h2{font-size:18px;padding-right:25px}
+  .modal p{font-size:11px;margin:8px 0 14px}
+  .modal label{margin:10px 0 0;font-size:10px}
+  .modal .done{margin-top:15px}
+}
+
+/* A short landscape viewport needs road visibility more than dashboard trim. */
+@media(max-width:1100px) and (max-height:360px) and (orientation:landscape){
+  .windshieldBrand b{font-size:8px;letter-spacing:1px}
+  .rearMirror{height:44px}
+  .mirror{top:19%;height:50px}
+  .mirrorMount{top:32%}
+  .feed{height:54px}
+  .impact{top:39%;padding:5px 8px;font-size:7px}
+}
+
+/* The cockpit is intentionally landscape on phones; tablet portrait still fits. */
+@media(max-width:600px) and (orientation:portrait){
+  .rotateHint{position:fixed;inset:0;z-index:25;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px max(28px,env(safe-area-inset-left)) max(32px,env(safe-area-inset-bottom)) max(28px,env(safe-area-inset-right));background:radial-gradient(ellipse at center,#273027f5,#111612fc 75%);color:#f0e5d0;text-align:center;line-height:1.5}
+  .rotateHint:before{content:'↻';display:grid;place-items:center;width:96px;height:64px;border:2px solid #d0ab68;border-radius:14px;color:#d0ab68;font:48px Manrope,sans-serif}
+  .rotateHint b,.rotateHint strong{font-size:22px;letter-spacing:.3px}
+  .rotateHint p,.rotateHint small,.rotateHint>span{max-width:290px;margin:0;color:#b6c0b3;font-size:13px;line-height:1.7}
+}

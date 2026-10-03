@@ -98,3 +98,39 @@ bottom unless one of the two overlapping, full-sweep wipers physically crosses
 them. Continuous blade-path detection prevents a fast wiper from skipping over
 drops, and drops touching a resting blade clear as well. Wiper speed cycles through
 off and slow, with matching motor sounds.
+
+
+## Play on a phone or tablet
+
+Turn a phone **sideways (landscape)**. The game fits the visible screen, including
+browser bars and iPhone safe areas. Steer with your left thumb and hold **FWD** or
+**REV** with your right thumb. You can hold steering and a pedal together; releasing
+one finger leaves the other control active. **BRAKE** stops the car without changing
+gear (desktop shortcut: **Space**, when a button or form control is not focused).
+Holding FWD and REV together also brakes. P/R/N/D remain available on the dashboard.
+
+Tap **TOOLS** to show settings, weather, headlamps, cameras, reset, turn signals and
+wipers. Tap it again to close. The tools tray scrolls horizontally on especially
+narrow screens. Camera panels and mirrors use fixed compact positions on smaller
+screens so they stay visible after rotation; they can still be dragged on larger
+desktop windows. Both camera panels can be hidden and restored with the camera
+control, and the settings dialog scrolls when necessary.
+
+Switching apps, rotating the device, losing pointer capture, opening settings,
+resetting, or changing gears clears held inputs. Opening settings stops the car.
+A portrait phone displays a rotate hint and stops driving until turned sideways.
+No fullscreen or orientation-lock permission is required. Desktop arrow keys,
+mouse controls, and keyboard signal/wiper shortcuts continue to work.
+
+## Checks
+
+Run `npm test` for the dependency-free multi-touch, interruption, cleanup and
+braking tests, then `npm run build`. Pull requests run syntax checks, tests and the
+static build without publishing the game.
+
+Manual browser/device checks: 568×320, 667×375, 844×390 and 1024×768; hold steering
+with either pedal, slide a finger off a held button before releasing, interrupt a
+hold by switching apps or rotating, open/close tools and settings, hide/restore
+cameras, then return to desktop keyboard control. Verify the notch/home indicator
+areas on a physical iPhone. The screenshot above currently shows the desktop
+version; an updated mobile screenshot still needs capture in an accessible browser.

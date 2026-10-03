@@ -1,0 +1,26 @@
+name: Validate simulator
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax
+        run: |
+          node --check src/main.js
+          node --check src/driving-input.mjs
+      - name: Test driving input and braking
+        run: npm test
+      - name: Build static application
+        run: npm run build
