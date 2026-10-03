@@ -20,7 +20,9 @@ jobs:
         run: |
           node --check src/main.js
           node --check src/driving-input.mjs
+          node --check src/wheel-input.mjs
       - name: Test driving input and braking
         run: npm test
       - name: Build static application
         run: npm run build
+

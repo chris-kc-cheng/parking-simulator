@@ -217,7 +217,7 @@ button:focus-visible{outline:2px solid #efd399;outline-offset:2px}
     --safe-left:max(8px,env(safe-area-inset-left));
     --safe-right:max(8px,env(safe-area-inset-right));
     --safe-bottom:env(safe-area-inset-bottom,0px);
-    --wheel-size:clamp(84px,18vh,156px);
+    --wheel-size:clamp(96px,20vh,156px);
     --camera-width:clamp(108px,calc((100vw - var(--safe-left) - var(--safe-right) - var(--wheel-size) - 224px)/2),200px);
   }
   .cockpit{height:auto;min-height:0}
@@ -315,3 +315,9 @@ button:focus-visible{outline:2px solid #efd399;outline-offset:2px}
   .rotateHint b,.rotateHint strong{font-size:22px;letter-spacing:.3px}
   .rotateHint p,.rotateHint small,.rotateHint>span{max-width:290px;margin:0;color:#b6c0b3;font-size:13px;line-height:1.7}
 }
+
+
+/* Direct wheel manipulation shares the pedal controls’ gesture isolation. */
+.wheel{touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;cursor:grab}
+.wheel.steering-held{cursor:grabbing;outline:2px solid #d0ab68;outline-offset:3px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
