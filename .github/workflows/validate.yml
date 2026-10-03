@@ -21,8 +21,42 @@ jobs:
           node --check src/main.js
           node --check src/driving-input.mjs
           node --check src/wheel-input.mjs
+          node --check src/contact-input.mjs
+          node --check tests/browser.mjs
       - name: Test driving input and braking
         run: npm test
       - name: Build static application
         run: npm run build
 
+  browser:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        browser: [chromium, webkit]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser test tooling only
+        run: npm install --no-save --package-lock=false playwright@1.62.1
+      - name: Install browser and Linux dependencies
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+      - name: Build the same static files that are deployed
+        run: npm run build
+      - name: Test full app touch, mouse and keyboard controls
+        env:
+          BROWSER: ${{ matrix.browser }}
+          APP_ROOT: dist
+        run: node tests/browser.mjs
+      - name: Save viewport screenshots and browser traces
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: browser-regressions-${{ matrix.browser }}
+          path: test-results/
+          if-no-files-found: warn
+          retention-days: 14

@@ -109,6 +109,9 @@ your left thumb and hold **FWD** or
 one finger leaves the other control active. The wheel follows the angle you drag
 from its current position, with 420° from center to either hard stop. Release it
 to return gently toward center; grab it again anywhere on the rim without jumping.
+On touch-capable browsers, the wheel and pedals track each finger directly with
+non-passive Touch Events; mouse and pen keep Pointer Events. Safari browser-bar
+height changes preserve your grip, while rotation/backgrounding clears it.
 The center button still honks. Left/right buttons and arrow keys remain available,
 and a mouse or pen can drag the rim too. While you hold the wheel it takes priority
 over steering buttons/keys. **BRAKE** stops the car without changing

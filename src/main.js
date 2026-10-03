@@ -1,5 +1,5 @@
-import { createDrivingInput } from './driving-input.mjs';
-import { WHEEL_LOCK_DEGREES } from './wheel-input.mjs';
+import { createDrivingInput } from './driving-input.mjs?v=20261003-iphone-touch';
+import { WHEEL_LOCK_DEGREES } from './wheel-input.mjs?v=20261003-iphone-touch';
 
 const icon = name => `<span class="ico">${({ settings: '⚙', camera: '▣', eye: '◉', left: '‹', right: '›', reset: '↻', info: 'i' })[name]}</span>`;
 
@@ -881,10 +881,13 @@ document.querySelector('#fish').oninput = e => { state.fisheye = +e.target.value
 document.querySelector('#fov').oninput = e => { state.fov = +e.target.value; document.querySelector('#fovValue').value = e.target.value; };
 document.querySelector('#height').oninput = e => { state.eyeHeight = +e.target.value; document.querySelector('#heightValue').value = (+e.target.value).toFixed(2); };
 
-// Clear stale holds and dragged pixel positions when the viewport changes.
-// CSS handles dynamic browser chrome and safe-area sizing; no orientation lock.
+// Safari's browser bars can change viewport height during a finger gesture.
+// Keep that grip; cancel only when layout width/orientation really changes.
+let inputViewportWidth = innerWidth;
 function resetViewport() {
-  drivingInput.clear();
+  if (innerWidth !== inputViewportWidth || portraitPhone.matches) drivingInput.clear();
+  else drivingInput.rebaseWheel();
+  inputViewportWidth = innerWidth;
   stopWindowDrags.forEach(stop => stop());
   movableWindows.forEach(panel => {
     for (const property of ['left', 'top', 'right', 'z-index']) panel.style.removeProperty(property);
