@@ -1,8 +1,12 @@
+import { createWheelInput } from './wheel-input.mjs';
+
 // Each input source owns its hold. Releasing one finger (or a keyboard key)
 // must not release another finger holding the same action.
 export function createDrivingInput(keys, buttons, {
   windowTarget = window, documentTarget = document, canDrive = () => true,
+  wheel = null, getSteering = () => 0,
 } = {}) {
+  const wheelInput = wheel ? createWheelInput(wheel, { canDrive, getSteering }) : null;
   const keyboard = new Set();
   const pointers = new Map();
   const actions = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ']);
@@ -25,6 +29,7 @@ export function createDrivingInput(keys, buttons, {
     sync();
   };
   const clear = () => {
+    wheelInput?.clear();
     keyboard.clear();
     for (const pointerId of [...pointers.keys()]) releasePointer(pointerId);
     sync();
@@ -57,5 +62,10 @@ export function createDrivingInput(keys, buttons, {
   listen(windowTarget, 'orientationchange', clear);
   listen(documentTarget, 'visibilitychange', () => { if (documentTarget.hidden) clear(); });
   sync();
-  return { clear, destroy() { clear(); disposers.forEach(dispose => dispose()); } };
+  return {
+    get steering() { return wheelInput?.value ?? null; },
+    clear,
+    destroy() { clear(); wheelInput?.destroy(); disposers.forEach(dispose => dispose()); },
+  };
 }
+

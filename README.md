@@ -103,9 +103,15 @@ off and slow, with matching motor sounds.
 ## Play on a phone or tablet
 
 Turn a phone **sideways (landscape)**. The game fits the visible screen, including
-browser bars and iPhone safe areas. Steer with your left thumb and hold **FWD** or
+browser bars and iPhone safe areas. **Drag around the steering-wheel rim** with
+your left thumb and hold **FWD** or
 **REV** with your right thumb. You can hold steering and a pedal together; releasing
-one finger leaves the other control active. **BRAKE** stops the car without changing
+one finger leaves the other control active. The wheel follows the angle you drag
+from its current position, with 420° from center to either hard stop. Release it
+to return gently toward center; grab it again anywhere on the rim without jumping.
+The center button still honks. Left/right buttons and arrow keys remain available,
+and a mouse or pen can drag the rim too. While you hold the wheel it takes priority
+over steering buttons/keys. **BRAKE** stops the car without changing
 gear (desktop shortcut: **Space**, when a button or form control is not focused).
 Holding FWD and REV together also brakes. P/R/N/D remain available on the dashboard.
 
@@ -128,9 +134,14 @@ Run `npm test` for the dependency-free multi-touch, interruption, cleanup and
 braking tests, then `npm run build`. Pull requests run syntax checks, tests and the
 static build without publishing the game.
 
-Manual browser/device checks: 568×320, 667×375, 844×390 and 1024×768; hold steering
+Manual browser/device checks: drag the rim across the ±180° seam, continue around
+to both hard stops and reverse, release and re-grab while recentering, move through
+the hub, and hold a pedal with another finger throughout. Verify that the center
+horn button still works and wheel gestures do not scroll or zoom the page.
+Check sizes 568×320, 667×375, 844×390 and 1024×768; hold steering
 with either pedal, slide a finger off a held button before releasing, interrupt a
 hold by switching apps or rotating, open/close tools and settings, hide/restore
 cameras, then return to desktop keyboard control. Verify the notch/home indicator
 areas on a physical iPhone. The screenshot above currently shows the desktop
 version; an updated mobile screenshot still needs capture in an accessible browser.
+
