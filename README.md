@@ -109,6 +109,9 @@ your left thumb and hold **FWD** or
 one finger leaves the other control active. The wheel follows the angle you drag
 from its current position, with 420° from center to either hard stop. Release it
 to return gently toward center; grab it again anywhere on the rim without jumping.
+On touch-capable browsers, the wheel and pedals track each finger directly with
+non-passive Touch Events; mouse and pen keep Pointer Events. Safari browser-bar
+height changes preserve your grip, while rotation/backgrounding clears it.
 The center button still honks. Left/right buttons and arrow keys remain available,
 and a mouse or pen can drag the rim too. While you hold the wheel it takes priority
 over steering buttons/keys. **BRAKE** stops the car without changing
@@ -142,6 +145,12 @@ Check sizes 568×320, 667×375, 844×390 and 1024×768; hold steering
 with either pedal, slide a finger off a held button before releasing, interrupt a
 hold by switching apps or rotating, open/close tools and settings, hide/restore
 cameras, then return to desktop keyboard control. Verify the notch/home indicator
-areas on a physical iPhone. The screenshot above currently shows the desktop
-version; an updated mobile screenshot still needs capture in an accessible browser.
+areas on a physical iPhone. The screenshot above shows the mobile layout at
+844×390, captured from the built application in the WebKit CI browser.
+
+For full-page input regressions, install the CI-pinned Playwright version from
+`.github/workflows/validate.yml`, run `npx playwright install --with-deps chromium webkit`,
+then `node tests/browser.mjs`. CI saves viewport screenshots and browser traces.
+Chromium uses browser-generated multi-touch; WebKit uses synthetic touch contacts
+bubbling through the real DOM. Neither replaces physical-iPhone testing.
 

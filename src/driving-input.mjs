@@ -1,4 +1,5 @@
-import { createWheelInput } from './wheel-input.mjs';
+import { bindContacts } from './contact-input.mjs?v=20261003-iphone-touch';
+import { createWheelInput } from './wheel-input.mjs?v=20261003-iphone-touch';
 
 // Each input source owns its hold. Releasing one finger (or a keyboard key)
 // must not release another finger holding the same action.
@@ -6,9 +7,10 @@ export function createDrivingInput(keys, buttons, {
   windowTarget = window, documentTarget = document, canDrive = () => true,
   wheel = null, getSteering = () => 0,
 } = {}) {
-  const wheelInput = wheel ? createWheelInput(wheel, { canDrive, getSteering }) : null;
+  const wheelInput = wheel ? createWheelInput(wheel, { canDrive, getSteering, windowTarget, documentTarget }) : null;
   const keyboard = new Set();
   const pointers = new Map();
+  const contacts = [];
   const actions = new Set(['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', ' ']);
   const disposers = [];
   const listen = (target, type, callback, options) => {
@@ -25,7 +27,7 @@ export function createDrivingInput(keys, buttons, {
   const releasePointer = pointerId => {
     const hold = pointers.get(pointerId);
     pointers.delete(pointerId);
-    if (hold?.button.hasPointerCapture(pointerId)) hold.button.releasePointerCapture(pointerId);
+    hold?.contact.release(pointerId);
     sync();
   };
   const clear = () => {
@@ -45,16 +47,16 @@ export function createDrivingInput(keys, buttons, {
   });
   listen(windowTarget, 'keyup', event => { keyboard.delete(event.key); sync(); });
   for (const button of buttons) {
-    listen(button, 'pointerdown', event => {
-      if ((event.pointerType === 'mouse' && event.button !== 0) || !canDrive()) return;
-      event.preventDefault();
-      button.setPointerCapture(event.pointerId);
-      pointers.set(event.pointerId, { key: button.dataset.key, button });
-      sync();
+    const contact = bindContacts(button, { windowTarget, documentTarget,
+      start(id) {
+        if (!canDrive()) return false;
+        pointers.set(id, { key: button.dataset.key, button, contact });
+        sync();
+        return true;
+      },
+      end: releasePointer,
     });
-    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) {
-      listen(button, type, event => releasePointer(event.pointerId));
-    }
+    contacts.push(contact);
     listen(button, 'contextmenu', event => event.preventDefault());
   }
   listen(windowTarget, 'blur', clear);
@@ -65,7 +67,8 @@ export function createDrivingInput(keys, buttons, {
   return {
     get steering() { return wheelInput?.value ?? null; },
     clear,
-    destroy() { clear(); wheelInput?.destroy(); disposers.forEach(dispose => dispose()); },
+    rebaseWheel() { wheelInput?.rebase(); },
+    destroy() { clear(); wheelInput?.destroy(); contacts.forEach(contact => contact.destroy()); disposers.forEach(dispose => dispose()); },
   };
 }
 
