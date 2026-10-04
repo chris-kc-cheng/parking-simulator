@@ -182,6 +182,59 @@ async function loadApp(page) {
   assert.equal(await page.evaluate(() => 'ontouchstart' in window), true, 'mobile context must expose Touch Events');
 }
 
+async function nativeHornTap(page) {
+  const wheel = await geometry(page), point = { x: wheel.x, y: wheel.y };
+  await checkWheelHit(page, point, 'horn');
+  await page.evaluate(() => {
+    window.__hornEvents = [];
+    for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'touchstart', 'touchmove', 'touchend', 'touchcancel', 'click']) {
+      document.addEventListener(type, event => {
+        const entry = { type, trusted: event.isTrusted, horn: !!event.target.closest?.('.horn'),
+          target: event.target.tagName, pointerType: event.pointerType, time: event.timeStamp };
+        window.__hornEvents.push(entry);
+        queueMicrotask(() => { entry.prevented = event.defaultPrevented; });
+      }, { capture: true });
+    }
+  });
+  // Unlike constructed TouchEvents, touchscreen.tap uses each browser's input
+  // API. Require exactly one trusted click; do not substitute a DOM click.
+  await page.touchscreen.tap(point.x, point.y);
+  try {
+    await page.waitForFunction(() => window.__hornEvents.some(event => event.type === 'click' && event.horn && event.trusted));
+  } catch (cause) {
+    const events = await page.evaluate(() => window.__hornEvents);
+    throw new Error(`Native horn tap did not produce a trusted click. Event trail: ${JSON.stringify(events)}`, { cause });
+  }
+  await frame(page);
+  const events = await page.evaluate(() => window.__hornEvents);
+  assert.equal(events.filter(event => event.type === 'click' && event.horn && event.trusted).length, 1,
+    `One native tap must produce exactly one trusted horn click. Event trail: ${JSON.stringify(events)}`);
+  await wheelHeld(page, false);
+  await nearAngle(page, 0);
+}
+
+// Control experiment: isolate browser input synthesis from all application code.
+// This diagnostic is retained so a backend limitation cannot be mistaken for a
+// horn regression. The ordinary backend must produce a trusted native click.
+async function nativeButtonControl(browser) {
+  const context = await browser.newContext({ viewport: { width: 568, height: 320 }, hasTouch: true, isMobile: true });
+  const page = await context.newPage();
+  try {
+    await page.setContent('<meta name="viewport" content="width=device-width,initial-scale=1"><button style="position:absolute;left:10px;top:10px;width:100px;height:60px;touch-action:none">Native control</button>');
+    await page.evaluate(() => {
+      window.__controlEvents = [];
+      for (const type of ['touchstart', 'touchend', 'click']) document.addEventListener(type, event => {
+        window.__controlEvents.push({ type, trusted: event.isTrusted, target: event.target.tagName, prevented: event.defaultPrevented });
+      }, { capture: true });
+    });
+    await page.touchscreen.tap(50, 40);
+    await page.waitForFunction(() => window.__controlEvents.some(event => event.type === 'click'), null, { timeout: 1500 }).catch(error => {
+      if (error.name !== 'TimeoutError') throw error;
+    });
+    return await page.evaluate(() => window.__controlEvents);
+  } finally { await context.close(); }
+}
+
 const touchCases = {
   async 'rim and all three spokes steer clockwise and counterclockwise'({ page, driver }) {
     for (const [region, degrees, fraction] of [['rim', -90, .92], ['leftSpoke', 180, .72], ['rightSpoke', 0, .72], ['lowerSpoke', 90, .72]]) {
@@ -247,38 +300,53 @@ const touchCases = {
     await driver.end(3);
     await noHolds(page);
   },
-  async 'horn hit target never starts steering and a real tap still clicks it'({ page, driver }) {
+  async 'horn hit target never starts steering and a real tap still clicks it'({ page, driver, viewport, browserName, hornBrowser }) {
     const wheel = await geometry(page), point = { x: wheel.x, y: wheel.y };
     await checkWheelHit(page, point, 'horn');
-    // Test the native tap FIRST on this fresh document: a preceding low-distance
-    // gesture can still have a compatibility click pending in the browser.
-    await page.evaluate(() => {
-      window.__hornEvents = [];
-      for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'touchstart', 'touchmove', 'touchend', 'touchcancel', 'click']) {
-        document.addEventListener(type, event => {
-          const entry = { type, trusted: event.isTrusted, horn: !!event.target.closest?.('.horn'),
-            target: event.target.tagName, pointerType: event.pointerType, time: event.timeStamp };
-          window.__hornEvents.push(entry);
-          queueMicrotask(() => { entry.prevented = event.defaultPrevented; });
-        }, { capture: true });
-      }
-    });
-    // Unlike constructed TouchEvents, touchscreen.tap uses each browser's input
-    // API. Require exactly one trusted click; do not substitute a DOM click.
-    await page.touchscreen.tap(point.x, point.y);
-    try {
-      await page.waitForFunction(() => window.__hornEvents.some(event => event.type === 'click' && event.horn && event.trusted));
-    } catch (cause) {
-      const events = await page.evaluate(() => window.__hornEvents);
-      throw new Error(`Native horn tap did not produce a trusted click. Event trail: ${JSON.stringify(events)}`, { cause });
-    }
-    await frame(page);
-    const events = await page.evaluate(() => window.__hornEvents);
-    assert.equal(events.filter(event => event.type === 'click' && event.horn && event.trusted).length, 1,
-      `One native tap must produce exactly one trusted horn click. Event trail: ${JSON.stringify(events)}`);
-    await wheelHeld(page, false);
-    await nearAngle(page, 0);
-    // Separately verify that a contact moving over the hub cannot grab the wheel.
+    if (browserName === 'chromium') {
+      // Linux Chromium's experimental multi-contact input route does not emit
+      // compatibility clicks, even on a plain native button (see control below).
+      // Chromium's synthetic_gesture_target_aura.cc debugger path directly calls
+      // the window delegate, bypassing the normal platform event injector.
+      // Exercise actual horn activation in ordinary Chromium, with the same
+      // full app, viewport, trusted touchscreen API and exactly-one assertion.
+      const context = await hornBrowser.newContext({ viewport, hasTouch: true, isMobile: true, deviceScaleFactor: 1 });
+      await context.route(/^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)\//, route => route.abort());
+      const tapPage = await context.newPage();
+      tapPage.setDefaultTimeout(10_000);
+      const errors = [];
+      tapPage.on('pageerror', error => errors.push(error.message));
+      try {
+        await loadApp(tapPage);
+        await nativeHornTap(tapPage);
+        // A single finger uses normal CDP touchStart/move/end without enabling
+        // SyntheticPointerActions, proving steering in ordinary Chromium too.
+        const normalDriver = await touchDriver(tapPage, 'chromium');
+        let steeringFailure;
+        try {
+          const normalWheel = await geometry(tapPage), radius = normalWheel.radius * .72;
+          const start = polar(normalWheel, 180, radius);
+          await checkWheelHit(tapPage, start, 'leftSpoke');
+          await normalDriver.start(1, start);
+          await wheelHeld(tapPage, true);
+          await arc(normalDriver, 1, normalWheel, 180, 240, radius);
+          await nearAngle(tapPage, 60);
+          await normalDriver.end(1);
+          await wheelHeld(tapPage, false);
+          await centered(tapPage);
+        } catch (error) { steeringFailure = error; throw error; }
+        finally {
+          if (steeringFailure) await normalDriver.dispose().catch(() => {});
+          else await normalDriver.dispose();
+        }
+        assert.deepEqual(errors, [], 'normal native horn and steering must not throw');
+      } catch (error) {
+        await tapPage.screenshot({ path: resolve(artifacts, `${browserName}-${viewport.width}x${viewport.height}`, 'native-horn-failure.png') }).catch(() => {});
+        throw error;
+      } finally { await context.close(); }
+    } else await nativeHornTap(page);
+    // The multi-contact backend still verifies that a contact moving over the
+    // hub cannot grab the wheel, independently of native click generation.
     await driver.start(1, point);
     await driver.move(1, { x: point.x + 5, y: point.y - 5 });
     await wheelHeld(page, false);
@@ -413,7 +481,19 @@ async function mouseChecks(page) {
 
 for (const browserName of browsers) test(`${browserName}: real app browser regressions`, { timeout: 600_000 }, async t => {
   const browser = await ({ chromium, webkit }[browserName]).launch(browserName === 'chromium' ? { args: ['--enable-features=SyntheticPointerActions'] } : {});
+  let hornBrowser = browser;
   try {
+    if (browserName === 'chromium') {
+      hornBrowser = await chromium.launch();
+      await t.test('native button control distinguishes multi-touch synthesis from normal browser clicks', async controlTest => {
+        const experimental = await nativeButtonControl(browser);
+        const normal = await nativeButtonControl(hornBrowser);
+        controlTest.diagnostic(`SyntheticPointerActions control: ${JSON.stringify(experimental)}`);
+        controlTest.diagnostic(`Normal Chromium control: ${JSON.stringify(normal)}`);
+        assert.equal(normal.filter(event => event.type === 'click' && event.trusted).length, 1,
+          `Normal Chromium must generate exactly one trusted click on a native button: ${JSON.stringify(normal)}`);
+      });
+    }
     for (const viewport of viewports) await t.test(`${viewport.width}x${viewport.height} touch`, async t => {
       const name = `${browserName}-${viewport.width}x${viewport.height}`;
       const directory = resolve(artifacts, name);
@@ -438,7 +518,7 @@ for (const browserName of browsers) test(`${browserName}: real app browser regre
           const driver = await touchDriver(page, browserName);
           let primaryError;
           try {
-            await run({ page, driver, viewport });
+            await run({ page, driver, viewport, browserName, hornBrowser });
             assert.deepEqual(errors, [], 'no uncaught browser errors');
             const viewportState = await page.evaluate(() => ({ x: scrollX, y: scrollY, scale: visualViewport?.scale ?? 1 }));
             assert.deepEqual(viewportState, { x: 0, y: 0, scale: 1 }, 'controls must not scroll or pinch-zoom the page');
@@ -478,5 +558,8 @@ for (const browserName of browsers) test(`${browserName}: real app browser regre
         assert.deepEqual(errors, []);
       } finally { await context.close(); }
     });
-  } finally { await browser.close(); }
+  } finally {
+    if (hornBrowser !== browser) await hornBrowser.close();
+    await browser.close();
+  }
 });
