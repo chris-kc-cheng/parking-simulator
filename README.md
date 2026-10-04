@@ -145,6 +145,12 @@ Check sizes 568×320, 667×375, 844×390 and 1024×768; hold steering
 with either pedal, slide a finger off a held button before releasing, interrupt a
 hold by switching apps or rotating, open/close tools and settings, hide/restore
 cameras, then return to desktop keyboard control. Verify the notch/home indicator
-areas on a physical iPhone. The screenshot above currently shows the desktop
-version; an updated mobile screenshot still needs capture in an accessible browser.
+areas on a physical iPhone. The screenshot above shows the mobile layout at
+844×390, captured from the built application in the WebKit CI browser.
+
+For full-page input regressions, install the CI-pinned Playwright version from
+`.github/workflows/validate.yml`, run `npx playwright install --with-deps chromium webkit`,
+then `node tests/browser.mjs`. CI saves viewport screenshots and browser traces.
+Chromium uses browser-generated multi-touch; WebKit uses synthetic touch contacts
+bubbling through the real DOM. Neither replaces physical-iPhone testing.
 

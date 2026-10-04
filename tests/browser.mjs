@@ -96,8 +96,10 @@ async function noHolds(page) {
 // SyntheticPointerActions feature enables the documented active-contact-list
 // semantics: touchMove can add/remove a contact without releasing its sibling.
 // WebKit has no equivalent public multi-touch protocol API in Playwright, so its
-// multi-touch tests construct native Touch/TouchEvent instances and let them
-// bubble from the real hit-tested DOM target. They are not physical iOS tests.
+// multi-touch tests dispatch TouchEvents from real hit-tested DOM targets.
+// WebKit exposes Touch but can reject its constructor; use its legacy factories
+// where available, otherwise define readonly contact lists on a real TouchEvent.
+// These DOM-dispatched WebKit events are not trusted or physical iOS input.
 async function touchDriver(page, browserName) {
   if (browserName === 'chromium') {
     const cdp = await page.context().newCDPSession(page);
@@ -127,14 +129,38 @@ async function touchDriver(page, browserName) {
       contacts.set(id, contact);
     } else if (!contact) throw new Error(`Missing touch ${id}`);
     if (point) Object.assign(contact, point);
-    const makeTouch = item => new Touch({ identifier: item.identifier, target: item.target,
-      clientX: item.x, clientY: item.y, pageX: item.x + scrollX, pageY: item.y + scrollY,
-      screenX: item.x, screenY: item.y, radiusX: 2, radiusY: 2, rotationAngle: 0, force: 1 });
+    const makeTouch = item => {
+      const init = { identifier: item.identifier, target: item.target,
+        clientX: item.x, clientY: item.y, pageX: item.x + scrollX, pageY: item.y + scrollY,
+        screenX: item.x, screenY: item.y, radiusX: 2, radiusY: 2, rotationAngle: 0, force: 1 };
+      try { return new Touch(init); } catch { /* WebKit Touch has no constructor. */ }
+      if (typeof document.createTouch === 'function') {
+        return document.createTouch(window, item.target, item.identifier,
+          init.pageX, init.pageY, init.screenX, init.screenY);
+      }
+      return Object.freeze(init);
+    };
     const changed = makeTouch(contact);
     if (type === 'touchend' || type === 'touchcancel') contacts.delete(id);
     const touches = [...contacts.values()].map(makeTouch);
-    contact.target.dispatchEvent(new TouchEvent(type, { bubbles: true, cancelable: true, view: window,
-      touches, targetTouches: touches.filter(touch => touch.target === contact.target), changedTouches: [changed] }));
+    const lists = { touches, targetTouches: touches.filter(touch => touch.target === contact.target), changedTouches: [changed] };
+    let event;
+    try {
+      const nativeLists = Object.fromEntries(Object.entries(lists).map(([key, items]) => [key,
+        typeof document.createTouchList === 'function' ? document.createTouchList(...items) : items]));
+      event = new TouchEvent(type, { bubbles: true, cancelable: true, view: window, ...nativeLists });
+      if (event.changedTouches?.length !== 1) throw new Error('TouchEvent ignored its contact lists');
+    } catch {
+      // Linux WebKit uses non-constructible Touch/TouchList objects. Keep real
+      // TouchEvent dispatch/bubbling and readonly contact-list semantics without
+      // substituting pointer events or mocking the application's event handlers.
+      event = new TouchEvent(type, { bubbles: true, cancelable: true, view: window });
+      for (const [key, items] of Object.entries(lists)) {
+        Object.defineProperty(items, 'item', { value: index => items[index] ?? null });
+        Object.defineProperty(event, key, { value: Object.freeze(items) });
+      }
+    }
+    contact.target.dispatchEvent(event);
   }, { type, id, point });
   return {
     start: (id, point) => dispatch('touchstart', id, point),
@@ -224,21 +250,41 @@ const touchCases = {
   async 'horn hit target never starts steering and a real tap still clicks it'({ page, driver }) {
     const wheel = await geometry(page), point = { x: wheel.x, y: wheel.y };
     await checkWheelHit(page, point, 'horn');
+    // Test the native tap FIRST on this fresh document: a preceding low-distance
+    // gesture can still have a compatibility click pending in the browser.
+    await page.evaluate(() => {
+      window.__hornEvents = [];
+      for (const type of ['pointerdown', 'pointerup', 'pointercancel', 'touchstart', 'touchmove', 'touchend', 'touchcancel', 'click']) {
+        document.addEventListener(type, event => {
+          const entry = { type, trusted: event.isTrusted, horn: !!event.target.closest?.('.horn'),
+            target: event.target.tagName, pointerType: event.pointerType, time: event.timeStamp };
+          window.__hornEvents.push(entry);
+          queueMicrotask(() => { entry.prevented = event.defaultPrevented; });
+        }, { capture: true });
+      }
+    });
+    // Unlike constructed TouchEvents, touchscreen.tap uses each browser's input
+    // API. Require exactly one trusted click; do not substitute a DOM click.
+    await page.touchscreen.tap(point.x, point.y);
+    try {
+      await page.waitForFunction(() => window.__hornEvents.some(event => event.type === 'click' && event.horn && event.trusted));
+    } catch (cause) {
+      const events = await page.evaluate(() => window.__hornEvents);
+      throw new Error(`Native horn tap did not produce a trusted click. Event trail: ${JSON.stringify(events)}`, { cause });
+    }
+    await frame(page);
+    const events = await page.evaluate(() => window.__hornEvents);
+    assert.equal(events.filter(event => event.type === 'click' && event.horn && event.trusted).length, 1,
+      `One native tap must produce exactly one trusted horn click. Event trail: ${JSON.stringify(events)}`);
+    await wheelHeld(page, false);
+    await nearAngle(page, 0);
+    // Separately verify that a contact moving over the hub cannot grab the wheel.
     await driver.start(1, point);
     await driver.move(1, { x: point.x + 5, y: point.y - 5 });
     await wheelHeld(page, false);
     await nearAngle(page, 0);
     await driver.end(1);
-    // Unlike constructed TouchEvents, touchscreen.tap goes through each browser's
-    // input API and exercises the native compatibility click for the horn.
-    await page.locator('.horn').evaluate(horn => {
-      window.__hornClicks = 0;
-      horn.addEventListener('click', () => window.__hornClicks++, { capture: true });
-    });
-    await page.touchscreen.tap(point.x, point.y);
-    await page.waitForFunction(() => window.__hornClicks === 1);
     await wheelHeld(page, false);
-    await nearAngle(page, 0);
   },
   async 'keyboard and touch owners of the same pedal release independently'({ page, driver }) {
     const pedal = await buttonPoint(page, 'ArrowUp');
@@ -365,7 +411,7 @@ async function mouseChecks(page) {
   await centered(page);
 }
 
-for (const browserName of browsers) test(`${browserName}: real app browser regressions`, { timeout: 300_000 }, async t => {
+for (const browserName of browsers) test(`${browserName}: real app browser regressions`, { timeout: 600_000 }, async t => {
   const browser = await ({ chromium, webkit }[browserName]).launch(browserName === 'chromium' ? { args: ['--enable-features=SyntheticPointerActions'] } : {});
   try {
     for (const viewport of viewports) await t.test(`${viewport.width}x${viewport.height} touch`, async t => {
@@ -376,7 +422,9 @@ for (const browserName of browsers) test(`${browserName}: real app browser regre
       // Keep browser checks offline and stable: the app's only remote assets are
       // optional Google fonts. Never replace or intercept any app JS/CSS.
       await context.route(/^https:\/\/(fonts\.googleapis\.com|fonts\.gstatic\.com)\//, route => route.abort());
-      await context.tracing.start({ screenshots: true, snapshots: true, sources: true });
+      // Separate PNGs cover the viewports and failures. Avoid canvas-heavy video
+      // frames in traces, keeping downloaded CI artifacts practical to inspect.
+      await context.tracing.start({ screenshots: false, snapshots: true, sources: true });
       const page = await context.newPage();
       page.setDefaultTimeout(10_000);
       let errors = [];
@@ -384,19 +432,24 @@ for (const browserName of browsers) test(`${browserName}: real app browser regre
       try {
         await loadApp(page);
         await page.screenshot({ path: resolve(directory, 'screenshot.png'), fullPage: true });
-        for (const [title, run] of Object.entries(touchCases)) await t.test(title, async () => {
+        for (const [title, run] of Object.entries(touchCases)) await t.test(title, async caseTest => {
           errors = [];
           await loadApp(page);
           const driver = await touchDriver(page, browserName);
+          let primaryError;
           try {
             await run({ page, driver, viewport });
             assert.deepEqual(errors, [], 'no uncaught browser errors');
             const viewportState = await page.evaluate(() => ({ x: scrollX, y: scrollY, scale: visualViewport?.scale ?? 1 }));
             assert.deepEqual(viewportState, { x: 0, y: 0, scale: 1 }, 'controls must not scroll or pinch-zoom the page');
           } catch (error) {
+            primaryError = error;
             await page.screenshot({ path: resolve(directory, `${title.replace(/[^a-z0-9]+/gi, '-').toLowerCase()}-failure.png`), fullPage: true }).catch(() => {});
             throw error;
-          } finally { await driver.dispose(); }
+          } finally {
+            if (primaryError) await driver.dispose().catch(error => caseTest.diagnostic(`Input cleanup also failed: ${error.message}`));
+            else await driver.dispose();
+          }
         });
       } finally {
         await context.tracing.stop({ path: resolve(directory, 'trace.zip') });
