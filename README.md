@@ -1,16 +1,52 @@
 # Parking Simulator
 
+## Versions
+
+- `/` opens `/v2/`, the default version.
+- `/v1` (or `/v1/`) opens the original simulator, preserved in `v1/`.
+- `/v2` (or `/v2/`) opens the independent new version in `v2/`.
+
+Version 2 is PrecisionPark 3D, imported from the AI Studio export. It uses
+React, TypeScript, Three.js, Vite and Tailwind CSS, independently of version 1.
+It includes driver cockpit and exterior views, mirrors, backup camera,
+bird's-eye parking assistance, sonar, audio and a scored back-in parking episode.
+Use W/S or up/down to drive, A/D or left/right to steer, P/Space to park,
+and Q/E to glance over your shoulders. The help button explains the controls.
+The car stays level fore/aft when accelerating or reversing; acceleration pitch
+is disabled. No Gemini API key or backend server is required.
+
+Use Node.js 22.12+ (or Node.js 24+) and Python 3. Run `npm run setup` once
+(or after dependency changes), then `npm run dev` to build and serve both versions.
+For fast v2 development, run `npm run dev:v2` and open the Vite URL at
+http://127.0.0.1:3000/. Run `npm run check:v2` for TypeScript checks. After building, run
+`node tests/v2-browser.mjs` with Playwright Chromium installed to check v2,
+version switching and repository-prefix deployment.
+Vite uses relative asset URLs so the build supports GitHub Pages repository paths.
+The build publishes compiled v2 assets only; source and dependencies are
+excluded from the deployed site. The original export ZIP was removed after
+extraction and verification.
+
+The root redirect preserves query parameters and fragments. Directory URLs work
+with Python's local server and GitHub Pages, including the repository URL prefix.
+
+`npm run build` creates `dist/` with both versions using a cross-platform Node
+script. Publish the whole `dist/` directory. Existing browser regression tests
+target version 1; the following gameplay documentation describes version 1.
+
+![Version 2 PrecisionPark 3D cockpit](screenshot.png)
+
+
 Learn the feel of parking from the driver's seat with a multi-view driving
 simulator built for practice.
 
 ## Run locally
 
-Run `npm run dev`, then open **http://127.0.0.1:4819/**. The explicit address
+Run `npm run dev`, then open **http://127.0.0.1:4819/** for v2 or **http://127.0.0.1:4819/v1/** for v1. The explicit address
 avoids accidentally opening another development server through `localhost`.
 
 ## [Play Parking Simulator](https://chris-kc-cheng.github.io/parking-simulator/)
 
-![Parking Simulator showing the connected city, live traffic, windshield, mirrors, rear camera, and bird's-eye view](screenshot.png)
+![Parking Simulator showing the connected city, live traffic, windshield, mirrors, rear camera, and bird's-eye view](v1/screenshot.png)
 
 ## Explore the city
 
@@ -101,3 +137,58 @@ bottom unless one of the two overlapping, full-sweep wipers physically crosses
 them. Continuous blade-path detection prevents a fast wiper from skipping over
 drops, and drops touching a resting blade clear as well. Wiper speed cycles through
 off and slow, with matching motor sounds.
+
+
+## Play on a phone or tablet
+
+Turn a phone **sideways (landscape)**. The game fits the visible screen, including
+browser bars and iPhone safe areas. **Drag around the steering-wheel rim** with
+your left thumb and hold **FWD** or
+**REV** with your right thumb. You can hold steering and a pedal together; releasing
+one finger leaves the other control active. The wheel follows the angle you drag
+from its current position, with 420° from center to either hard stop. Release it
+to return gently toward center; grab it again anywhere on the rim without jumping.
+On touch-capable browsers, the wheel and pedals track each finger directly with
+non-passive Touch Events; mouse and pen keep Pointer Events. Safari browser-bar
+height changes preserve your grip, while rotation/backgrounding clears it.
+The center button still honks. Left/right buttons and arrow keys remain available,
+and a mouse or pen can drag the rim too. While you hold the wheel it takes priority
+over steering buttons/keys. **BRAKE** stops the car without changing
+gear (desktop shortcut: **Space**, when a button or form control is not focused).
+Holding FWD and REV together also brakes. P/R/N/D remain available on the dashboard.
+
+Tap **TOOLS** to show settings, weather, headlamps, cameras, reset, turn signals and
+wipers. Tap it again to close. The tools tray scrolls horizontally on especially
+narrow screens. Camera panels and mirrors use fixed compact positions on smaller
+screens so they stay visible after rotation; they can still be dragged on larger
+desktop windows. Both camera panels can be hidden and restored with the camera
+control, and the settings dialog scrolls when necessary.
+
+Switching apps, rotating the device, losing pointer capture, opening settings,
+resetting, or changing gears clears held inputs. Opening settings stops the car.
+A portrait phone displays a rotate hint and stops driving until turned sideways.
+No fullscreen or orientation-lock permission is required. Desktop arrow keys,
+mouse controls, and keyboard signal/wiper shortcuts continue to work.
+
+## Checks
+
+Run `npm test` for the dependency-free multi-touch, interruption, cleanup and
+braking tests, then `npm run build`. Pull requests run syntax checks, tests and the
+static build without publishing the game.
+
+Manual browser/device checks: drag the rim across the ±180° seam, continue around
+to both hard stops and reverse, release and re-grab while recentering, move through
+the hub, and hold a pedal with another finger throughout. Verify that the center
+horn button still works and wheel gestures do not scroll or zoom the page.
+Check sizes 568×320, 667×375, 844×390 and 1024×768; hold steering
+with either pedal, slide a finger off a held button before releasing, interrupt a
+hold by switching apps or rotating, open/close tools and settings, hide/restore
+cameras, then return to desktop keyboard control. Verify the notch/home indicator
+areas on a physical iPhone. The v1 screenshot above shows the desktop cockpit with mirrors and both
+camera panels. CI also captures mobile viewport screenshots.
+
+For full-page input regressions, install the CI-pinned Playwright version from
+`.github/workflows/validate.yml`, run `npx playwright install --with-deps chromium webkit`,
+then `node tests/browser.mjs`. CI saves viewport screenshots and browser traces.
+Chromium uses browser-generated multi-touch; WebKit uses synthetic touch contacts
+bubbling through the real DOM. Neither replaces physical-iPhone testing.

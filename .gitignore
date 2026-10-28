@@ -1,2 +1,7 @@
 dist/
 node_modules/
+.edge-preview/
+.chrome-preview/
+v2/dist/
+.env.local
+v2/*.zip

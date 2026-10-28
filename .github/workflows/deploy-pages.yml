@@ -18,6 +18,11 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install version 2 dependencies
+        run: npm run setup
       - name: Build static application
         run: npm run build
       - name: Publish site
