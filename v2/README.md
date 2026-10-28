@@ -1,14 +1,9 @@
-# PrecisionPark 3D - Version 2
+# PrecisionPark 3D — Version 2
 
-React / TypeScript / Three.js app imported from AI Studio.
+Practice a scored back-in parking challenge with a 3D cockpit, mirrors, backup
+camera, bird's-eye view and sonar.
 
-From the repository root, run `npm run setup`, then `npm run dev` to serve
-both versions. Use `npm run dev:v2` for Vite hot reload on port 3000.
-Run `npm run check:v2` to type-check and `npm run build` to build the whole site.
+[Play version 2](https://chris-kc-cheng.github.io/parking-simulator/v2/)
 
-No API key is required. Unused AI Studio backend and Gemini dependencies were
-removed. `vite.config.ts` uses relative assets for deployment under `/v2/`,
-including GitHub Pages repository prefixes. Keep framework sources here; the
-root build copies only `v2/dist/` to the published site.
-
-Acceleration and reverse do not pitch the car body forward or backward.
+See the [player guide](../README.md) for both versions and controls, or the
+[developer guide](../DEVELOPING.md) for setup, architecture, deployment and testing.

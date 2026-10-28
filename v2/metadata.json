@@ -1,6 +1,6 @@
 {
   "name": "PrecisionPark 3D - Driver Simulator",
-  "description": "Challenging 3D driver-perspective parking simulator featuring realistic vehicle physics, functional rear & side mirrors, active backup camera with predictive trajectory guidelines, and a 360° bird's-eye parking radar.",
+  "description": "Challenging 3D driver-perspective parking simulator featuring realistic vehicle physics, functional rear & side mirrors, active backup camera with predictive trajectory guidelines, and a 360\u00c2\u00b0 bird's-eye parking radar.",
   "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+  "majorCapabilities": []
 }
