@@ -1,18 +1,53 @@
 import React from 'react';
 import { VehicleInputs } from '../types/simulation';
+import { SteeringWheel } from './SteeringWheel';
 import { ArrowUp, ArrowDown, ChevronLeft, ChevronRight, Lock } from 'lucide-react';
 
 interface DrivingControlsProps {
   inputs: VehicleInputs;
   onSetInput: <K extends keyof VehicleInputs>(key: K, value: VehicleInputs[K]) => void;
   onTogglePark: () => void;
+  mobile?: boolean;
 }
 
 export const DrivingControls: React.FC<DrivingControlsProps> = ({
   inputs,
   onSetInput,
   onTogglePark,
+  mobile = false,
 }) => {
+  if (mobile) {
+    // Thumb zones: steering bottom-left, pedals + park bottom-right. Icon-only, translucent.
+    const hold = (label: string, active: boolean, on: () => void, off: () => void, tone: string, icon: React.ReactNode) => (
+      <button type="button" aria-label={label} title={label}
+        onTouchStart={(e) => { e.preventDefault(); on(); }} onTouchEnd={off} onTouchCancel={off}
+        onMouseDown={on} onMouseUp={off} onMouseLeave={off}
+        className={`m-btn m-glass flex items-center justify-center transition-colors ${active ? tone : 'text-white'}`}>
+        {icon}
+      </button>
+    );
+    const drive = (key: 'forward' | 'reverse') => () => {
+      onSetInput('park', false); onSetInput('forward', key === 'forward'); onSetInput('reverse', key === 'reverse');
+    };
+    const pad = { bottom: 'max(8px, env(safe-area-inset-bottom))' };
+    return (
+      <>
+        <div className="absolute z-20 pointer-events-auto select-none" style={{ ...pad, left: 'max(8px, env(safe-area-inset-left))' }}>
+          <SteeringWheel onSteer={v => onSetInput('steer', v)} />
+        </div>
+        <div className="absolute z-20 pointer-events-auto flex items-end gap-2 select-none" style={{ ...pad, right: 'max(8px, env(safe-area-inset-right))' }}>
+          <button type="button" aria-label="Park" title="Park" onClick={onTogglePark}
+            className={`m-btn m-glass flex flex-col items-center justify-center ${inputs.park ? 'bg-blue-600 text-white' : 'text-white'}`}>
+            <Lock size={18} /><span className="text-[9px] font-mono font-bold">PARK</span>
+          </button>
+          <div className="flex flex-col gap-2">
+            {hold('Forward', inputs.forward, drive('forward'), () => onSetInput('forward', false), 'bg-emerald-600', <ArrowUp size={26} />)}
+            {hold('Reverse', inputs.reverse, drive('reverse'), () => onSetInput('reverse', false), 'bg-red-600', <ArrowDown size={26} />)}
+          </div>
+        </div>
+      </>
+    );
+  }
   return (
     <div className="absolute bottom-6 right-6 z-20 pointer-events-auto flex items-end gap-3 select-none">
       {/* 1. Steering Buttons (Left / Right with auto-return on release) */}

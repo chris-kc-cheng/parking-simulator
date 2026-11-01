@@ -12,9 +12,20 @@ import { InfotainmentDisplay } from './components/InfotainmentDisplay';
 import { DrivingControls } from './components/DrivingControls';
 import { EvaluationModal } from './components/EvaluationModal';
 import { ControlsHelpModal } from './components/ControlsHelpModal';
+import { enterFullscreenLandscape, isFullscreen, useDeviceLayout } from './utils/mobile';
+import { RotateCw, Maximize } from 'lucide-react';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const { mobile, portrait } = useDeviceLayout();
+
+  // Phones: go full screen (no browser bars) on the first touch.
+  useEffect(() => {
+    if (!mobile) return;
+    const go = () => { if (!isFullscreen()) void enterFullscreenLandscape(); };
+    window.addEventListener('touchend', go, { once: true });
+    return () => window.removeEventListener('touchend', go);
+  }, [mobile]);
 
   // Simulation singletons in refs
   const sceneRef = useRef<ParkingScene | null>(null);
@@ -403,7 +414,7 @@ export default function App() {
   };
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-neutral-950 font-sans">
+    <main className="relative w-screen h-dvh overflow-hidden bg-neutral-950 font-sans">
       {/* 3D WebGL Canvas filling entire viewport */}
       <canvas
         ref={canvasRef}
@@ -421,12 +432,14 @@ export default function App() {
         onToggleMute={handleToggleMute}
         onRestart={() => restartEpisode()}
         onToggleHelp={() => setShowHelpModal(true)}
+        mobile={mobile}
       />
 
       {/* Fully Bright Mirror Widgets (Left Wing, Right Wing, Center Rearview) */}
       <MirrorWidgets
         sonar={sonar}
         visible={viewMode === 'cockpit'}
+        mobile={mobile}
         onEnlargeMirror={(mirror) => {
           if (mirror === 'left') handleSelectGlance('left-mirror');
           else if (mirror === 'right') handleSelectGlance('right-mirror');
@@ -442,6 +455,7 @@ export default function App() {
           currentGlance={currentGlance}
           onSelectGlance={handleSelectGlance}
           hadRecentCollision={hadRecentCollision}
+          mobile={mobile}
         />
       )}
 
@@ -453,6 +467,7 @@ export default function App() {
           showGuidelines={showGuidelines}
           onToggleGuidelines={() => setShowGuidelines((prev) => !prev)}
           guidanceMessage={evaluation.guidanceMessage}
+          mobile={mobile}
         />
       )}
 
@@ -461,6 +476,7 @@ export default function App() {
         inputs={inputsState}
         onSetInput={handleSetInput}
         onTogglePark={handleTogglePark}
+        mobile={mobile}
       />
 
       {/* Parking Performance Evaluation Modal */}
@@ -477,6 +493,16 @@ export default function App() {
         isOpen={showHelpModal}
         onClose={() => setShowHelpModal(false)}
       />
+      {mobile && portrait && (
+        <div role="alertdialog" aria-label="Rotate your device" className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-neutral-950 text-center p-8">
+          <RotateCw size={56} className="text-blue-400 animate-spin" style={{ animationDuration: '4s' }} />
+          <p className="text-xl font-bold text-white">Rotate your device to landscape</p>
+          <p className="text-sm text-neutral-400">Parking Simulator plays best sideways, with room for the mirrors and cameras.</p>
+          <button type="button" onClick={() => void enterFullscreenLandscape()} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-blue-600 text-white text-sm font-semibold">
+            <Maximize size={16} />Go full screen
+          </button>
+        </div>
+      )}
     </main>
   );
 }

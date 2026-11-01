@@ -8,6 +8,7 @@ interface InfotainmentDisplayProps {
   showGuidelines: boolean;
   onToggleGuidelines: () => void;
   guidanceMessage: string;
+  mobile?: boolean;
 }
 
 export const InfotainmentDisplay: React.FC<InfotainmentDisplayProps> = ({
@@ -16,6 +17,7 @@ export const InfotainmentDisplay: React.FC<InfotainmentDisplayProps> = ({
   showGuidelines,
   onToggleGuidelines,
   guidanceMessage,
+  mobile = false,
 }) => {
   // Generate dynamic curving trajectory path that narrows hyperbolically with distance (perspective physics)
   // and curves in an authentic circular Ackermann arc based on wheel angle
@@ -290,11 +292,11 @@ export const InfotainmentDisplay: React.FC<InfotainmentDisplayProps> = ({
   const isReverse = state.gear === 'R';
 
   return (
-    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 pointer-events-auto select-none">
+    <div className="absolute left-1/2 -translate-x-1/2 z-20 pointer-events-auto select-none" style={{ bottom: mobile ? 'max(8px, env(safe-area-inset-bottom))' : '1rem' }}>
       {/* Automotive Center Console Frame (100% transparent screen cutout so WebGL shines through) */}
-      <div className="w-[340px] sm:w-[560px] md:w-[680px] p-2 bg-transparent rounded-2xl border-2 border-neutral-700/90 shadow-2xl">
+      <div className={`${mobile ? 'm-info p-1' : 'w-[340px] sm:w-[560px] md:w-[680px] p-2'} bg-transparent rounded-2xl border-2 border-neutral-700/90 shadow-2xl`}>
         {/* Top Infotainment Header Bar */}
-        <div className="flex items-center justify-between px-3 py-1.5 bg-neutral-950/90 rounded-t-xl border border-white/15 text-[11px] font-mono text-neutral-300">
+        <div className={`flex items-center justify-between px-3 rounded-t-xl border border-white/15 font-mono text-neutral-300 ${mobile ? 'py-0.5 text-[9px] bg-neutral-950/60' : 'py-1.5 text-[11px] bg-neutral-950/90'}`}>
           <div className="flex items-center gap-2">
             <span
               className={`w-2 h-2 rounded-full ${
@@ -302,12 +304,12 @@ export const InfotainmentDisplay: React.FC<InfotainmentDisplayProps> = ({
               }`}
             />
             <span className="font-semibold text-white tracking-wider">
-              {isReverse ? 'PARKING ASSIST (REAR ACTIVE)' : 'COCKPIT PARKING RADAR'}
+              {mobile ? (isReverse ? 'REAR ACTIVE' : 'PARKING RADAR') : isReverse ? 'PARKING ASSIST (REAR ACTIVE)' : 'COCKPIT PARKING RADAR'}
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <span className="text-neutral-400">
+            <span className={`text-neutral-400 ${mobile ? 'hidden' : ''}`}>
               MIN DIST: <strong className="text-white font-mono">{sonar.closestDistance < 4 ? `${sonar.closestDistance.toFixed(2)}m` : '> 4.0m'}</strong>
             </span>
             <button
@@ -325,7 +327,7 @@ export const InfotainmentDisplay: React.FC<InfotainmentDisplayProps> = ({
 
         {/* Dual Screen Display: 3D Bird's Eye View (Left) + Mirror Backup Camera (Right) */}
         {/* CRITICAL: Must be completely transparent with no background color so WebGL canvas is 100% visible! */}
-        <div className="grid grid-cols-12 gap-2 mt-1.5 h-44 sm:h-52 bg-transparent rounded-b-xl overflow-hidden border border-white/15 relative">
+        <div className={`grid grid-cols-12 gap-2 ${mobile ? 'm-info-screens mt-1' : 'h-44 sm:h-52 mt-1.5'} bg-transparent rounded-b-xl overflow-hidden border border-white/15 relative`}>
           {/* LEFT: Live 3D Bird's Eye Camera with Dynamic Backwards Projection */}
           <div className="col-span-5 relative bg-transparent border-r border-white/15 flex flex-col justify-between overflow-hidden">
             {/* 3D Viewport Target for Live Bird's Eye Camera */}
@@ -462,7 +464,7 @@ export const InfotainmentDisplay: React.FC<InfotainmentDisplayProps> = ({
             {/* Header Badge */}
             <div className="relative z-10 m-2 flex items-center gap-1.5 text-[9px] font-mono text-neutral-100 bg-neutral-950/80 px-2 py-0.5 rounded backdrop-blur-xs w-max border border-white/10">
               <Eye size={11} className="text-blue-400" />
-              <span>3D BIRD'S EYE VIEW</span>
+              <span>{mobile ? "BIRD'S EYE" : "3D BIRD'S EYE VIEW"}</span>
             </div>
 
             {/* Bottom Sonar Distance Badge */}
@@ -617,7 +619,7 @@ export const InfotainmentDisplay: React.FC<InfotainmentDisplayProps> = ({
             </div>
 
             {/* Real-time Guidance Message */}
-            <div className="absolute bottom-5 inset-x-2 bg-neutral-950/90 backdrop-blur-xs border border-white/10 rounded px-2.5 py-1 flex items-center justify-between text-[10px] text-neutral-200">
+            <div className={`absolute bottom-5 inset-x-2 bg-neutral-950/90 backdrop-blur-xs border border-white/10 rounded px-2.5 py-1 items-center justify-between text-[10px] text-neutral-200 ${mobile ? 'hidden' : 'flex'}`}>
               <span className="flex items-center gap-1.5 truncate">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
                 <span className="truncate">{guidanceMessage}</span>

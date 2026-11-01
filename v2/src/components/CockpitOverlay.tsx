@@ -8,6 +8,7 @@ interface CockpitOverlayProps {
   currentGlance: LookGlance;
   onSelectGlance: (glance: LookGlance) => void;
   hadRecentCollision: boolean;
+  mobile?: boolean;
 }
 
 export const CockpitOverlay: React.FC<CockpitOverlayProps> = ({
@@ -16,6 +17,7 @@ export const CockpitOverlay: React.FC<CockpitOverlayProps> = ({
   currentGlance,
   onSelectGlance,
   hadRecentCollision,
+  mobile = false,
 }) => {
   const speedKmh = Math.abs(state.speed * 3.6);
   // Negative steering angle = Left, Positive = Right
@@ -35,6 +37,18 @@ export const CockpitOverlay: React.FC<CockpitOverlayProps> = ({
 
       {/* Relocated Over-Shoulder Glance Bar: Positioned above the center infotainment console */}
       {/* Completely free of the top rearview mirror with zero overlap! */}
+      {mobile ? (
+        <div className="absolute pointer-events-auto flex items-center gap-2" style={{ bottom: 'calc(max(8px, env(safe-area-inset-bottom)) + clamp(88px, 28dvh, 120px) + 8px)', left: 'max(8px, env(safe-area-inset-left))' }}>
+          {([['over-shoulder-left', 'Look over left shoulder', RotateCcw, 'bg-amber-600'], ['over-shoulder-right', 'Look over right shoulder', RotateCw, 'bg-emerald-600']] as const).map(([g, label, Icon, on]) => (
+            <button key={g} type="button" aria-label={label} title={label}
+              onTouchStart={(e) => { e.preventDefault(); onSelectGlance(g); }} onTouchEnd={() => onSelectGlance('center')} onTouchCancel={() => onSelectGlance('center')}
+              onMouseDown={() => onSelectGlance(g)} onMouseUp={() => onSelectGlance('center')}
+              className={`m-glass w-11 h-11 flex flex-col items-center justify-center text-white ${currentGlance === g ? on : ''}`} style={{ touchAction: 'none' }}>
+              <Icon size={16} /><span className="text-[8px] font-mono">{g.endsWith('left') ? 'L' : 'R'}</span>
+            </button>
+          ))}
+        </div>
+      ) : (
       <div className="absolute bottom-[234px] left-1/2 -translate-x-1/2 pointer-events-auto flex items-center gap-2 p-1.5 bg-neutral-950/90 backdrop-blur-md rounded-2xl border border-white/20 text-xs shadow-2xl">
         {/* Hold: Left Over Shoulder */}
         <button
@@ -84,9 +98,10 @@ export const CockpitOverlay: React.FC<CockpitOverlayProps> = ({
           <span className="text-[9px] font-mono text-emerald-400/80 ml-1">E</span>
         </button>
       </div>
+      )}
 
       {/* Driver Digital Gauge Cluster (Mounted on bottom-left) */}
-      <div className="absolute bottom-6 left-6 pointer-events-auto hidden md:flex flex-col gap-2 p-3 bg-neutral-950/90 backdrop-blur-md rounded-2xl border border-white/15 shadow-2xl w-64">
+      <div className={`absolute bottom-6 left-6 pointer-events-auto hidden ${mobile ? '' : 'md:flex'} flex-col gap-2 p-3 bg-neutral-950/90 backdrop-blur-md rounded-2xl border border-white/15 shadow-2xl w-64`}>
         <div className="flex items-center justify-between text-neutral-400 text-xs border-b border-white/10 pb-1.5">
           <span className="flex items-center gap-1.5 font-medium text-neutral-200">
             <Gauge size={14} className="text-blue-400" />

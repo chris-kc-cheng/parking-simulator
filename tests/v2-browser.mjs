@@ -32,6 +32,14 @@ try {
   });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
   const errors = [];
+  const registry = [
+    { id: 'parking-simulator', url: 'https://different-host.example/', name: 'Parking', icon: 'https://example.com/parking.png' },
+    { id: 'writing', url: 'https://write.example/', name: 'Writing', icon: 'https://example.com/writing.png' },
+    { id: 'math', url: 'https://math.example/', name: 'Math', icon: 'https://example.com/math.png' },
+  ];
+  await page.route('https://hedgies.cloud/app.json', route => route.fulfill({ json: registry }));
+  await page.route('https://example.com/*.png', route => route.abort());
+
   page.on('pageerror', error => errors.push(error.message));
   const base = `http://127.0.0.1:${server.address().port}${prefix}`;
   await page.goto(`${base}/?source=smoke#cockpit`);
@@ -39,6 +47,19 @@ try {
   await page.getByRole('button', { name: 'Driver Cockpit', exact: true }).waitFor();
   assert.equal(await page.title(), 'Parking Simulator');
   await page.waitForFunction(() => [...document.querySelectorAll('canvas')].some(c => c.width > 0 && c.height > 0));
+  await page.getByRole('button', { name: 'Apps', exact: true }).click();
+  const menu = page.getByRole('menu', { name: 'Apps' });
+  await menu.getByRole('menuitem', { name: /Writing/ }).waitFor();
+  assert.equal(await menu.getByRole('menuitem').count(), 2, 'self is hidden by ID despite a different URL');
+  assert.equal(await menu.getByRole('menuitem', { name: /Writing/ }).getAttribute('target'), '_blank');
+  await page.keyboard.press('Escape');
+  assert.equal(await menu.count(), 0);
+  // CORS/network failure uses the independently refreshed same-origin list.
+  await page.route('https://hedgies.cloud/app.json', route => route.abort());
+  await page.route('**/v2/apps.json', route => route.fulfill({ json: registry }));
+  await page.getByRole('button', { name: 'Apps', exact: true }).click();
+  await menu.getByRole('menuitem', { name: /Math/ }).waitFor();
+  await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Exterior View', exact: true }).click();
   await page.getByRole('button', { name: 'Driver Cockpit', exact: true }).click();
   await page.getByTitle('Controls Guide').click();

@@ -28,8 +28,27 @@ rainy or night driving, and use the mirrors and cameras to check your clearance.
 
 Add the game to your home screen using your browser's **Install app** or
 **Add to Home Screen** command. The app is named **Parking** and uses the blue
-side-mirror icon with yellow clearance guides. After one online visit, the
+side-mirror icon with yellow clearance guides on a warm sandstone background. After one online visit, the
 installed v2 game can reopen offline. Open the v2 link directly when offline.
+
+## Playing on a phone
+
+On touch phones and small tablets the game asks you to rotate to landscape, goes
+full screen on your first tap (installing it to the home screen gives iPhone the
+same browser-free view), and folds the navigation into a menu icon at the top
+left. The mirrors and cameras are sized to the screen so they never overlap, and
+the controls become translucent thumb controls: a draggable steering wheel at
+bottom left (turn it clockwise for right; it springs back to centre when
+released), park and forward/reverse at bottom right, shoulder looks above the wheel.
+The desktop layout is unchanged.
+
+## Other apps
+
+The **nine-dot Apps button** at the top right opens the platform app list from the live registry.
+Choose an app to open it in a new tab. Parking excludes itself by its registry ID. On this static site, registry
+changes are refreshed automatically about every 15 minutes.
+If the list is temporarily unavailable, the switcher retains its last saved list
+and offers **Try again**.
 
 ## Driving version 2
 

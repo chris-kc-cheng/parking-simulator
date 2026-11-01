@@ -141,3 +141,31 @@ The root build generates `dist/v2/sw.js` from the exact compiled assets using
 navigation with cached offline fallback, scoped to v2. Old versioned caches are
 removed when a new worker activates; close and reopen app tabs to finish updates.
 The root redirect needs a network connection; use the installed app or /v2/ offline.
+
+## Platform app switcher
+
+The header's nine-dot launcher reads `https://hedgies.cloud/app.json` on open.
+`platformApps.ts` excludes the stable ID `parking-simulator` independently of the
+current host or URL. Apps open in new tabs. There is no hard-coded app/icon list.
+
+GitHub Pages has no server proxy and the registry currently lacks CORS headers.
+`scripts/platform-apps.mjs` therefore resolves the live registry and each app's
+page/manifest at build time into `dist/v2/apps.json`. The browser tries the live
+URL, then this same-origin copy. `.github/workflows/refresh-apps.yml` refreshes
+that file every 15 minutes without rebuilding the game; GitHub schedules can be
+delayed. Names/icons come from app manifests, with ID/initial fallbacks.
+The resolver limits response sizes, uses HTTPS, and rejects private IPs and
+redirects to them. No third-party public proxy is used. Each UI excludes itself
+by ID, while the generated file retains the complete registry.
+
+The last good list is also saved locally for offline use. Set `VITE_APPS_URL` at
+build time to use a shared CORS-enabled enriched endpoint if one becomes
+available. If both live and saved requests fail, the menu offers Try again.
+
+## Mobile layout
+
+`utils/mobile.ts` treats `(pointer: coarse) and (hover: none)` devices with a short
+side of 900px or less as mobile. Components take a `mobile` prop and use the `.m-*`
+classes in `index.css`, which size panels in `vw`/`dvh` so they cannot overlap.
+Portrait shows a rotate prompt; the first touch requests fullscreen and a landscape
+lock (unsupported on iPhone Safari, so use Add to Home Screen there).
