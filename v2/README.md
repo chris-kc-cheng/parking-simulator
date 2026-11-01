@@ -1,4 +1,4 @@
-# PrecisionPark 3D — Version 2
+# Parking Simulator — Version 2
 
 Practice a scored back-in parking challenge with a 3D cockpit, mirrors, backup
 camera, bird's-eye view and sonar.

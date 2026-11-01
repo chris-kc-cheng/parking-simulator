@@ -6,7 +6,7 @@ import { createRequire } from 'node:module';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 const root = resolve('dist');
-const mime = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png' };
+const mime = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json' };
 // Serve under a repository prefix to catch asset paths that break on Pages.
 const prefix = '/parking-simulator';
 const server = createServer(async (req, res) => {
@@ -37,6 +37,7 @@ try {
   await page.goto(`${base}/?source=smoke#cockpit`);
   await page.waitForURL(`${base}/v2/?source=smoke#cockpit`);
   await page.getByRole('button', { name: 'Driver Cockpit', exact: true }).waitFor();
+  assert.equal(await page.title(), 'Parking Simulator');
   await page.waitForFunction(() => [...document.querySelectorAll('canvas')].some(c => c.width > 0 && c.height > 0));
   await page.getByRole('button', { name: 'Exterior View', exact: true }).click();
   await page.getByRole('button', { name: 'Driver Cockpit', exact: true }).click();
@@ -48,12 +49,26 @@ try {
   await page.getByTitle('Reset Car Position & Restart Episode').click();
   await page.waitForTimeout(1000);
   if (process.env.UPDATE_SCREENSHOT) await page.screenshot({ path: 'screenshot.png' });
+  const manifestURL = await page.locator('link[rel=manifest]').evaluate(link => link.href);
+  const manifest = await (await page.request.get(manifestURL)).json();
+  assert.equal(manifest.name, 'Parking');
+  for (const icon of manifest.icons) {
+    const response = await page.request.get(new URL(icon.src, manifestURL).href);
+    assert.equal(response.status(), 200);
+    assert.equal(response.headers()['content-type'], 'image/png');
+  }
+  await page.evaluate(() => navigator.serviceWorker.ready.then(() => undefined));
+  await page.waitForFunction(() => !!navigator.serviceWorker.controller);
+  await page.context().setOffline(true);
+  await page.reload();
+  await page.getByRole('button', { name: 'Driver Cockpit', exact: true }).waitFor();
+  await page.context().setOffline(false);
   await page.goto(`${base}/v2`);
   await page.getByRole('button', { name: 'Driver Cockpit', exact: true }).waitFor();
   await page.getByRole('link', { name: 'V1', exact: true }).click();
   await page.locator('.wheel').waitFor();
   assert.equal(errors.length, 0, errors.join('\n'));
-  console.log('Passed: default redirect, repository prefix, v2 route, cameras, help, input, reset, v1 switch; no page errors.');
+  console.log('Passed: default redirect, repository prefix, v2 route, cameras, help, input, reset, v1 switch, manifest/icons, offline reload; no page errors.');
 } finally {
   await browser?.close();
   await new Promise(resolve => server.close(resolve));

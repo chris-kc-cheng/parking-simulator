@@ -1,6 +1,7 @@
 import { cp, mkdir, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { writeServiceWorker } from './service-worker.mjs';
 execFileSync(process.execPath, [process.env.npm_execpath, '--prefix', 'v2', 'run', 'build'], {
   cwd: fileURLToPath(new URL('../', import.meta.url)), stdio: 'inherit',
 });
@@ -12,4 +13,5 @@ for (const path of ['index.html', '.nojekyll', 'screenshot.png', 'v1']) {
   await cp(new URL(`../${path}`, import.meta.url), new URL(path, output), { recursive: true });
 }
 await cp(new URL('../v2/dist/', import.meta.url), new URL('v2/', output), { recursive: true });
+await writeServiceWorker(new URL('v2/', output));
 console.log('Built static site: default v2, /v1/, /v2/');

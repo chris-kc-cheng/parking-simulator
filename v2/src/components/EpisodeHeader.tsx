@@ -25,7 +25,7 @@ export const EpisodeHeader: React.FC<EpisodeHeaderProps> = ({
       <div className="flex items-center gap-3">
         <span className="text-base font-bold tracking-tight text-white flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-          PrecisionPark 3D
+          Parking Simulator
         </span>
         <span className="text-xs text-neutral-400 hidden sm:inline">
           · Episode 01: Back-In Bay Parking

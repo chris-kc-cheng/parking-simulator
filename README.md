@@ -3,7 +3,7 @@
 Practice parking from the driver's seat, with mirrors and camera views to help
 you judge your position and clearance.
 
-## Version 2 — PrecisionPark 3D
+## Version 2 — Parking Simulator
 
 [Play version 2](https://chris-kc-cheng.github.io/parking-simulator/v2/)
 
@@ -23,6 +23,13 @@ parking. Practice front-in or back-in parking in the highlighted bay, try sunny,
 rainy or night driving, and use the mirrors and cameras to check your clearance.
 
 ![Version 1 cockpit with city traffic, mirrors and parking cameras](v1/screenshot.png)
+
+## Install Parking
+
+Add the game to your home screen using your browser's **Install app** or
+**Add to Home Screen** command. The app is named **Parking** and uses the blue
+side-mirror icon with yellow clearance guides. After one online visit, the
+installed v2 game can reopen offline. Open the v2 link directly when offline.
 
 ## Driving version 2
 

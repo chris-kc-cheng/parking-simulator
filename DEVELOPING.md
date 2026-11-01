@@ -70,7 +70,9 @@ npm run build
 Publish the entire `dist/` directory. It contains the root redirect, v1 and
 compiled v2 assets, excluding v2 source, dependencies and archives.
 `.github/workflows/deploy-pages.yml` builds on pushes to `main` and publishes to
-`gh-pages`. GitHub Settings → Pages must use that branch and its root folder.
+`gh-pages`. GitHub Settings → Pages must use **gh-pages** and its root folder, never
+`main`: serving `v2/src/main.tsx` directly causes a blank page because the browser
+cannot execute TypeScript/JSX. Deployment checks verify a compiled asset entry.
 `.github/workflows/validate.yml` installs dependencies, checks syntax and types,
 runs unit tests and builds the site; browser jobs exercise the built output.
 
@@ -128,3 +130,14 @@ For full-page input regressions, install the CI-pinned Playwright version from
 then `node tests/browser.mjs`. CI saves viewport screenshots and browser traces.
 Chromium uses browser-generated multi-touch; WebKit uses synthetic touch contacts
 bubbling through the real DOM. Neither replaces physical-iPhone testing.
+
+## App identity and offline support
+
+The in-game title is Parking Simulator; the install name is Parking.
+`v2/public/` contains the manifest, favicon and icon sizes, including a padded
+maskable icon. Root and v1 also use the approved side-mirror favicon.
+The root build generates `dist/v2/sw.js` from the exact compiled assets using
+`scripts/service-worker.mjs`. It precaches the game shell and uses network-first
+navigation with cached offline fallback, scoped to v2. Old versioned caches are
+removed when a new worker activates; close and reopen app tabs to finish updates.
+The root redirect needs a network connection; use the installed app or /v2/ offline.

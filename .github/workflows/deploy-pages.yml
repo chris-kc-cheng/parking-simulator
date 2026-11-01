@@ -43,21 +43,17 @@ jobs:
             echo "choose **Deploy from a branch**, select **gh-pages** and **/(root)**, then save."
             echo "This one-time repository setting cannot be changed by GITHUB_TOKEN."
           } >> "$GITHUB_STEP_SUMMARY"
-      - name: Verify public site
+      - name: Verify compiled public application
         env:
           SITE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
         run: |
-          # Publishing a branch and enabling a Pages site are separate GitHub
-          # operations. Do not report a successful deployment while Pages is
-          # still disabled at repository level.
           for attempt in 1 2 3 4 5; do
-            status="$(curl --silent --output /dev/null --write-out '%{http_code}' "$SITE_URL")"
-            if [ "$status" = 200 ]; then
-              echo "Published site is live at $SITE_URL"
+            if curl --fail --silent "${SITE_URL}v2/" | grep -Eq 'src="\./assets/[^" ]+\.js"'; then
+              echo "Compiled v2 is live at ${SITE_URL}v2/"
               exit 0
             fi
-            echo "Attempt $attempt: $SITE_URL returned HTTP $status; waiting for Pages..."
+            echo "Waiting for compiled v2 (attempt $attempt)..."
             sleep 12
           done
-          echo "::error title=GitHub Pages is not enabled::The gh-pages branch was published, but GitHub is not serving it. Open https://github.com/${GITHUB_REPOSITORY}/settings/pages and select Deploy from a branch → gh-pages → /(root)."
+          echo "::error::Pages must serve the gh-pages branch, not main. Raw TypeScript cannot run in the browser."
           exit 1
