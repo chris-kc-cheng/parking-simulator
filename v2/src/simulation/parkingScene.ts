@@ -1,10 +1,12 @@
 import * as THREE from 'three';
 import { ObstacleBox, ParkingBay, VehicleState } from '../types/simulation';
+import type { EpisodeId } from '../episodes';
 
 export class ParkingScene {
   public scene: THREE.Scene;
   public obstacles: ObstacleBox[] = [];
   public targetBay: ParkingBay;
+  private episode: EpisodeId;
 
   // Car 3D components
   public carGroup: THREE.Group;
@@ -29,24 +31,21 @@ export class ParkingScene {
   public sunLight!: THREE.DirectionalLight;
   public rearSunLight!: THREE.DirectionalLight;
 
-  constructor() {
+  constructor(episode: EpisodeId = 1) {
+    this.episode = episode;
     this.scene = new THREE.Scene();
 
     // 1. Bright Sunny Day Sky and Atmosphere
     this.scene.background = new THREE.Color(0x87ceeb); // Clear sky blue
     this.scene.fog = new THREE.FogExp2(0xbbe1fa, 0.005);
 
-    // Target bay definition (Bay #14)
-    this.targetBay = {
-      id: 'bay-14',
-      number: 14,
-      targetX: 0,
-      targetZ: 6.6,
-      targetHeading: Math.PI, // Backing in facing backwards into stall
-      width: 3.2,
-      length: 6.0,
-      curbZ: 9.6,
-    };
+    this.targetBay = episode === 2
+      // Parallel space on the +Z (right-hand) curb between two parked cars: 6.5 m gap, 2.4 m wide.
+      ? { id: 'parallel-1', number: 1, targetX: 0, targetZ: 5.1, targetHeading: Math.PI / 2,
+          width: 2.4, length: 6.5, curbZ: 6.3, parallel: true }
+      // Target bay definition (Bay #14)
+      : { id: 'bay-14', number: 14, targetX: 0, targetZ: 6.6, targetHeading: Math.PI,
+          width: 3.2, length: 6.0, curbZ: 9.6 };
 
     this.carGroup = new THREE.Group();
     this.leftMirrorMount = new THREE.Object3D();
@@ -151,6 +150,47 @@ export class ParkingScene {
 
     this.createDecorativeTrees();
 
+    if (this.episode === 1) this.buildBackInStalls(); else this.buildParallelStreet();
+
+    // ROAD ARROWS & DRIVEWAY LANE MARKINGS
+    const yellowMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4 });
+    for (let x = -20; x <= 20; x += 4.0) {
+      const dash = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.16), yellowMat);
+      dash.rotation.x = -Math.PI / 2;
+      dash.position.set(x, 0.015, 0);
+      this.scene.add(dash);
+    }
+
+    // Right lane (z = +1.8, driving forward +X into parking lot):
+    this.createRoadArrow(-14, 1.8, 0);
+    this.createRoadArrow(-2, 1.8, 0);
+
+    // Left/oncoming lane (z = -1.8, driving opposite direction -X):
+    this.createRoadArrow(14, -1.8, Math.PI);
+    this.createRoadArrow(2, -1.8, Math.PI);
+
+    if (this.episode === 1) this.buildBackInCars();
+
+    // Continuous White Driveway Edge Lines along both sides of the aisle
+    const aisleEdgeMat = new THREE.MeshStandardMaterial({
+      color: 0xffffff,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.95,
+      roughness: 0.1,
+      side: THREE.DoubleSide,
+    });
+    // North aisle white line (z = 3.6)
+    const northEdge = new THREE.Mesh(new THREE.BoxGeometry(48, 0.04, 0.24), aisleEdgeMat);
+    northEdge.position.set(0, 0.02, 3.6);
+    this.scene.add(northEdge);
+
+    // South aisle white line (z = -3.6)
+    const southEdge = new THREE.Mesh(new THREE.BoxGeometry(48, 0.04, 0.24), aisleEdgeMat);
+    southEdge.position.set(0, 0.02, -3.6);
+    this.scene.add(southEdge);
+  }
+
+  private buildBackInStalls() {
     // ALL PARKING STALLS: Complete White Rectangles
     // North Row: z from 3.6 to 9.6 (Depth 6.0m, Width 3.2m)
     // South Row: z from -3.6 to -9.6 (Depth 6.0m, Width 3.2m)
@@ -191,23 +231,9 @@ export class ParkingScene {
     baySign.position.set(0, 0.025, 4.4);
     this.scene.add(baySign);
 
-    // ROAD ARROWS & DRIVEWAY LANE MARKINGS
-    const yellowMat = new THREE.MeshStandardMaterial({ color: 0xfacc15, roughness: 0.4 });
-    for (let x = -20; x <= 20; x += 4.0) {
-      const dash = new THREE.Mesh(new THREE.PlaneGeometry(2.2, 0.16), yellowMat);
-      dash.rotation.x = -Math.PI / 2;
-      dash.position.set(x, 0.015, 0);
-      this.scene.add(dash);
-    }
+  }
 
-    // Right lane (z = +1.8, driving forward +X into parking lot):
-    this.createRoadArrow(-14, 1.8, 0);
-    this.createRoadArrow(-2, 1.8, 0);
-
-    // Left/oncoming lane (z = -1.8, driving opposite direction -X):
-    this.createRoadArrow(14, -1.8, Math.PI);
-    this.createRoadArrow(2, -1.8, Math.PI);
-
+  private buildBackInCars() {
     // POPULATE PARKED CARS: VIBRANT, LIGHT, AND COLORFUL (NO DARK CARS)
     // North Row:
     this.createParkedCar(-9.6, 6.6, Math.PI, 0xf8fafc, 'Parked Glacier White SUV (Bay 11)');
@@ -225,23 +251,60 @@ export class ParkingScene {
     this.createParkedCar(3.2, -6.6, 0, 0xc084fc, 'Parked Soft Lavender SUV (South 4)');
     this.createParkedCar(6.4, -6.6, 0, 0xfacc15, 'Parked Canary Yellow Coupe (South 5)');
     this.createParkedCar(9.6, -6.6, 0, 0xcfd8dc, 'Parked Platinum Silver Car (South 6)');
-    // Continuous White Driveway Edge Lines along both sides of the aisle
-    const aisleEdgeMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff,
-      emissive: 0xffffff,
-      emissiveIntensity: 0.95,
-      roughness: 0.1,
-      side: THREE.DoubleSide,
-    });
-    // North aisle white line (z = 3.6)
-    const northEdge = new THREE.Mesh(new THREE.BoxGeometry(48, 0.04, 0.24), aisleEdgeMat);
-    northEdge.position.set(0, 0.02, 3.6);
-    this.scene.add(northEdge);
+  }
 
-    // South aisle white line (z = -3.6)
-    const southEdge = new THREE.Mesh(new THREE.BoxGeometry(48, 0.04, 0.24), aisleEdgeMat);
-    southEdge.position.set(0, 0.02, -3.6);
-    this.scene.add(southEdge);
+  private buildParallelStreet() {
+    const concrete = new THREE.MeshStandardMaterial({ color: 0xd1d5db, roughness: 0.8 });
+    const curbMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.6 });
+    for (const side of [1, -1]) {
+      const slab = new THREE.Mesh(new THREE.BoxGeometry(80, 0.16, 3.8), concrete);
+      slab.position.set(0, 0.08, side * 8.2);
+      slab.receiveShadow = true;
+      this.scene.add(slab);
+      const curb = new THREE.Mesh(new THREE.BoxGeometry(80, 0.18, 0.3), curbMat);
+      curb.position.set(0, 0.09, side * 6.45);
+      this.scene.add(curb);
+      this.obstacles.push({
+        name: side > 0 ? 'North Curb' : 'South Curb',
+        minX: -40, maxX: 40,
+        minZ: side > 0 ? 6.3 : -10.1, maxZ: side > 0 ? 10.1 : -6.3,
+        height: 0.18,
+      });
+    }
+
+    // Target space: green guide strips along the curb-side and road-side of the gap.
+    const guide = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.9 });
+    for (const z of [3.95, 6.15]) {
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(6.0, 0.05, 0.14), guide);
+      strip.position.set(0, 0.03, z);
+      this.scene.add(strip);
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = 512; canvas.height = 128;
+    const ctx = canvas.getContext('2d')!;
+    ctx.fillStyle = '#0f172a'; ctx.fillRect(0, 0, 512, 128);
+    ctx.fillStyle = '#22c55e'; ctx.font = 'bold 46px sans-serif';
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText('PARALLEL PARK', 256, 64);
+    const sign = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.6),
+      new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }));
+    sign.rotation.order = 'YXZ';
+    sign.rotation.set(-Math.PI / 2, -Math.PI / 2, 0);
+    sign.position.set(0, 0.04, 5.05);
+    this.scene.add(sign);
+
+    // Curbside cars facing east (with traffic); the gap is between x = -3.25 and 3.25.
+    const east = Math.PI / 2;
+    this.createParkedCar(5.5, 5.1, east, 0xf87171, 'Parked Coral Rose SUV (ahead)', true);
+    this.createParkedCar(-5.5, 5.1, east, 0xf59e0b, 'Parked Solar Gold Sedan (behind)', true);
+    this.createParkedCar(12.5, 5.1, east, 0x38bdf8, 'Parked Sky Blue Hatchback', true);
+    this.createParkedCar(-13, 5.1, east, 0xf8fafc, 'Parked Glacier White SUV', true);
+    // Opposite curb, facing west.
+    const west = -Math.PI / 2;
+    this.createParkedCar(-9, -5.1, west, 0x4ade80, 'Parked Mint Green Coupe', true);
+    this.createParkedCar(-1.5, -5.1, west, 0xc084fc, 'Parked Soft Lavender SUV', true);
+    this.createParkedCar(6, -5.1, west, 0xfacc15, 'Parked Canary Yellow Coupe', true);
+    this.createParkedCar(13, -5.1, west, 0x22d3ee, 'Parked Turquoise Cyan Sedan', true);
   }
 
   private createStallRectangle(x: number, frontZ: number, rearZ: number, width: number, isTarget: boolean) {
@@ -384,7 +447,7 @@ export class ParkingScene {
     createTree(6, -12.5);
   }
 
-  private createParkedCar(x: number, z: number, heading: number, paintColor: number, name: string) {
+  private createParkedCar(x: number, z: number, heading: number, paintColor: number, name: string, alongX = false) {
     const carGroup = new THREE.Group();
 
     const lowerGeo = new THREE.BoxGeometry(1.82, 0.65, 4.42);
@@ -475,10 +538,10 @@ export class ParkingScene {
 
     this.obstacles.push({
       name,
-      minX: x - 0.95,
-      maxX: x + 0.95,
-      minZ: z - 2.25,
-      maxZ: z + 2.25,
+      minX: x - (alongX ? 2.25 : 0.95),
+      maxX: x + (alongX ? 2.25 : 0.95),
+      minZ: z - (alongX ? 0.95 : 2.25),
+      maxZ: z + (alongX ? 0.95 : 2.25),
       height: 1.6,
     });
   }

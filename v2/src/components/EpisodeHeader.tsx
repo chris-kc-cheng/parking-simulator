@@ -2,6 +2,7 @@ import AppLauncher from './AppLauncher';
 import React, { useState } from 'react';
 import { Volume2, VolumeX, RotateCcw, HelpCircle, Menu, X } from 'lucide-react';
 import { CameraViewMode } from '../types/simulation';
+import { EPISODES, EpisodeId } from '../episodes';
 
 interface EpisodeHeaderProps {
   viewMode: CameraViewMode;
@@ -10,6 +11,8 @@ interface EpisodeHeaderProps {
   onToggleMute: () => void;
   onRestart: () => void;
   onToggleHelp: () => void;
+  episode: EpisodeId;
+  onSelectEpisode: (episode: EpisodeId) => void;
   mobile?: boolean;
 }
 
@@ -20,6 +23,8 @@ export const EpisodeHeader: React.FC<EpisodeHeaderProps> = ({
   onToggleMute,
   onRestart,
   onToggleHelp,
+  episode,
+  onSelectEpisode,
   mobile = false,
 }) => {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -35,6 +40,11 @@ export const EpisodeHeader: React.FC<EpisodeHeaderProps> = ({
         {menuOpen && (
           <div className="mobile-panel absolute top-12 left-0 w-56 max-h-[calc(100dvh-64px)] overflow-y-auto p-2 flex flex-col gap-1 rounded-2xl bg-neutral-950 border border-white/20 shadow-2xl">
             <span className="px-3 pt-1 text-[11px] font-bold text-neutral-400">Parking Simulator</span>
+            {([1, 2] as const).map(id => (
+              <button key={id} className={`${row} ${episode === id ? 'bg-emerald-700' : ''}`} onClick={act(() => onSelectEpisode(id))}>
+                Episode {id}: {EPISODES[id].short}
+              </button>
+            ))}
             <button className={`${row} ${viewMode === 'cockpit' ? 'bg-blue-600' : ''}`} onClick={act(() => onSelectViewMode('cockpit'))}>Driver Cockpit</button>
             <button className={`${row} ${viewMode === 'exterior' ? 'bg-blue-600' : ''}`} onClick={act(() => onSelectViewMode('exterior'))}>Exterior View</button>
             <button className={row} onClick={act(onToggleHelp)}><HelpCircle size={16} />Controls Guide</button>
@@ -55,9 +65,15 @@ export const EpisodeHeader: React.FC<EpisodeHeaderProps> = ({
           <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
           Parking Simulator
         </span>
-        <span className="text-xs text-neutral-400 hidden sm:inline">
-          · Episode 01: Back-In Bay Parking
-        </span>
+        <label className="hidden sm:inline text-xs text-neutral-400">
+          <span className="sr-only">Episode</span>
+          <select value={episode} onChange={e => onSelectEpisode(Number(e.target.value) as EpisodeId)}
+            className="bg-neutral-900 text-neutral-200 border border-white/10 rounded-md px-2 py-1 text-xs">
+            {([1, 2] as const).map(id => (
+              <option key={id} value={id}>Episode {String(id).padStart(2, '0')}: {EPISODES[id].title}</option>
+            ))}
+          </select>
+        </label>
       </div>
 
       {/* Zone 2: Navigation & View Mode: ONLY Cockpit View and Exterior Chase */}

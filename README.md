@@ -52,6 +52,15 @@ and offers **Try again**.
 
 ## Driving version 2
 
+Version 2 has two episodes, chosen from the episode menu in the top bar (or the
+menu icon on a phone), or by opening the game with `?episode=2`:
+
+1. **Back-In Bay Parking**: reverse into Bay #14 in the lot.
+2. **Parallel Parking**: reverse into the 6.5 m gap between two cars at the right-hand
+   curb. Pull up level with the car ahead, back in with the wheel right, then swing the
+   nose in with the wheel left. Park within about 60 cm of the curb, straight and centred.
+
+
 | Action | Control |
 | --- | --- |
 | Drive forward | W / ↑ or on-screen Forward |

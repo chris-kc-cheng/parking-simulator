@@ -1,12 +1,14 @@
 import React from 'react';
 import { X, Keyboard, Compass } from 'lucide-react';
+import { EpisodeId } from '../episodes';
 
 interface ControlsHelpModalProps {
   isOpen: boolean;
   onClose: () => void;
+  episode: EpisodeId;
 }
 
-export const ControlsHelpModal: React.FC<ControlsHelpModalProps> = ({ isOpen, onClose }) => {
+export const ControlsHelpModal: React.FC<ControlsHelpModalProps> = ({ isOpen, onClose, episode }) => {
   if (!isOpen) return null;
 
   return (
@@ -65,6 +67,21 @@ export const ControlsHelpModal: React.FC<ControlsHelpModalProps> = ({ isOpen, on
               </kbd>
             </div>
           </div>
+
+          {episode === 2 && (
+            <div className="space-y-2">
+              <h3 className="font-semibold text-white flex items-center gap-1.5">
+                <Compass size={14} className="text-emerald-400" />
+                Episode 2: Parallel Parking
+              </h3>
+              <ol className="list-decimal pl-5 space-y-1 text-neutral-300 bg-neutral-950/40 p-3 pl-7 rounded-xl border border-white/5 leading-relaxed">
+                <li>Drive forward and stop beside the car ahead of the gap, about 1 m out, level with its rear bumper.</li>
+                <li>Shift to reverse, steer fully <strong>right</strong>, and back up slowly until the car is at about 45° to the curb.</li>
+                <li>Straighten the wheel and keep backing until the front clears the car behind... then steer fully <strong>left</strong>.</li>
+                <li>Straighten, stop within about 60 cm of the curb and centred in the gap, then press <strong>P</strong>.</li>
+              </ol>
+            </div>
+          )}
 
           {/* Episode 1 Strategy: How to Back In Park */}
           <div className="space-y-2">

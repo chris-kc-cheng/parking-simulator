@@ -43,6 +43,8 @@ export interface ParkingBay {
   width: number;
   length: number;
   curbZ: number;
+  // Parallel bay: long side runs along X, the curb is at curbZ on the +Z side.
+  parallel?: boolean;
 }
 
 export interface ParkingEvaluation {

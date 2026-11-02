@@ -24,7 +24,7 @@ export const TurnSignals: React.FC<{ signal: Signal; mobile?: boolean }> = ({ si
   };
   return (
     <div className="absolute left-1/2 -translate-x-1/2 z-20 flex items-center gap-6 pointer-events-none select-none"
-      style={{ top: mobile ? 'calc(14dvh + 34px)' : '10.5rem' }}>
+      style={{ top: mobile ? 'calc(14dvh + 34px)' : '13.5rem' }}>
       {arrow('left')}{arrow('right')}
     </div>
   );

@@ -67,6 +67,14 @@ try {
   await page.keyboard.down('ArrowUp');
   await page.waitForTimeout(500);
   await page.keyboard.up('ArrowUp');
+  // Episode 2: parallel parking is selectable and loads without errors.
+  const picker = page.getByLabel('Episode');
+  assert.equal(await picker.inputValue(), '1');
+  await picker.selectOption('2');
+  await page.waitForFunction(() => document.querySelector('select')?.value === '2');
+  await page.getByRole('button', { name: 'Driver Cockpit', exact: true }).waitFor();
+  await page.waitForTimeout(500);
+  await picker.selectOption('1');
   await page.getByTitle('Reset Car Position & Restart Episode').click();
   await page.waitForTimeout(1000);
   if (process.env.UPDATE_SCREENSHOT) await page.screenshot({ path: 'screenshot.png' });

@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import confetti from 'canvas-confetti';
 import { ParkingEvaluation } from '../types/simulation';
+import { EPISODES, EpisodeId } from '../episodes';
 import { Award, CheckCircle2, XCircle, RotateCcw, ArrowRight, ShieldCheck, Crosshair } from 'lucide-react';
 
 interface EvaluationModalProps {
@@ -9,6 +10,7 @@ interface EvaluationModalProps {
   onNextEpisode: () => void;
   isOpen: boolean;
   onClose: () => void;
+  episode: EpisodeId;
 }
 
 export const EvaluationModal: React.FC<EvaluationModalProps> = ({
@@ -17,6 +19,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({
   onNextEpisode,
   isOpen,
   onClose,
+  episode,
 }) => {
   useEffect(() => {
     if (isOpen && evaluation.isParkedSuccessfully && evaluation.score >= 80) {
@@ -32,6 +35,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({
   if (!isOpen) return null;
 
   const isSuccess = evaluation.isParkedSuccessfully && evaluation.collisions === 0;
+  const parallel = episode === 2;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-950/80 backdrop-blur-md select-none">
@@ -57,10 +61,10 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({
 
             <div>
               <h2 className="text-lg font-bold text-white tracking-tight">
-                {isSuccess ? 'Back-In Parking Completed!' : 'Parking Attempt Finished'}
+                {isSuccess ? EPISODES[episode].completed : 'Parking Attempt Finished'}
               </h2>
               <p className="text-xs text-neutral-400">
-                Episode 01: Back-In Bay Parking Precision Assessment
+                Episode {String(episode).padStart(2, '0')}: {EPISODES[episode].title} Precision Assessment
               </p>
             </div>
           </div>
@@ -80,7 +84,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-neutral-400 flex items-center gap-1.5">
               <Crosshair size={13} className="text-blue-400" />
-              Center Line Lateral Offset
+              {parallel ? 'Offset from Space Centre' : 'Center Line Lateral Offset'}
             </span>
             <span className="font-mono font-semibold text-white tabular-nums">
               {evaluation.lateralOffsetCm.toFixed(1)} cm
@@ -108,12 +112,12 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({
           <div className="flex items-center justify-between">
             <span className="text-neutral-400 flex items-center gap-1.5">
               <Award size={13} className="text-amber-400" />
-              Distance to Wheel Stop
+              {parallel ? 'Gap to Curb' : 'Distance to Wheel Stop'}
             </span>
             <span className="font-mono font-semibold text-white tabular-nums">
               {(evaluation.distanceToCurbM * 100).toFixed(0)} cm
               <span className="text-[10px] text-neutral-400 font-normal ml-1">
-                {evaluation.distanceToCurbM >= 0.2 && evaluation.distanceToCurbM <= 0.45 ? '(Optimal)' : '(Adjust Depth)'}
+                {(parallel ? evaluation.distanceToCurbM >= 0.08 && evaluation.distanceToCurbM <= 0.4 : evaluation.distanceToCurbM >= 0.2 && evaluation.distanceToCurbM <= 0.45) ? '(Optimal)' : parallel ? '(Adjust Gap)' : '(Adjust Depth)'}
               </span>
             </span>
           </div>
@@ -163,7 +167,7 @@ export const EvaluationModal: React.FC<EvaluationModalProps> = ({
             }}
             className="flex-1 py-2.5 px-4 rounded-xl font-medium text-xs text-white bg-blue-600 hover:bg-blue-500 active:bg-blue-700 shadow-md shadow-blue-600/30 transition-colors flex items-center justify-center gap-2"
           >
-            <span>Next Challenge</span>
+            <span>{episode === 1 ? 'Episode 2: Parallel' : 'Episode 1: Back-In'}</span>
             <ArrowRight size={14} />
           </button>
         </div>

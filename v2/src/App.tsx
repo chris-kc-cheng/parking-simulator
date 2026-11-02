@@ -15,10 +15,12 @@ import { ControlsHelpModal } from './components/ControlsHelpModal';
 import { enterFullscreenLandscape, isFullscreen, useDeviceLayout } from './utils/mobile';
 import { RotateCw, Maximize } from 'lucide-react';
 import { TurnSignals, Signal } from './components/TurnSignals';
+import { EPISODES, EpisodeId, initialEpisode } from './episodes';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { mobile, portrait } = useDeviceLayout();
+  const [episode, setEpisode] = useState<EpisodeId>(initialEpisode);
 
   // Auto turn signal: turning the wheel past ~30% lock switches it on; it cancels once the
   // car has turned about 40 degrees and the wheel is straight again, or after 15 s.
@@ -91,7 +93,7 @@ export default function App() {
     collisions: 0,
     gearShifts: 0,
     elapsedSeconds: 0,
-    guidanceMessage: 'Welcome to Episode 1. Hold DOWN to reverse into Bay #14.',
+    guidanceMessage: EPISODES[initialEpisode()].welcome,
   });
 
   // Current simplified driving inputs
@@ -149,7 +151,7 @@ export default function App() {
     if (!canvas) return;
 
     // 1. Create Scene & Physics
-    const parkingScene = new ParkingScene();
+    const parkingScene = new ParkingScene(episode);
     sceneRef.current = parkingScene;
 
     const initialX = DEFAULT_START_X;
@@ -276,7 +278,7 @@ export default function App() {
       window.removeEventListener('resize', handleResize);
       pipeline.dispose();
     };
-  }, [restartEpisode, showEvalModal]);
+  }, [restartEpisode, showEvalModal, episode]);
 
   // Simplified Keyboard driving controls & hold-to-glance
   useEffect(() => {
@@ -468,6 +470,8 @@ export default function App() {
         onToggleMute={handleToggleMute}
         onRestart={() => restartEpisode()}
         onToggleHelp={() => setShowHelpModal(true)}
+        episode={episode}
+        onSelectEpisode={setEpisode}
         mobile={mobile}
       />
 
@@ -523,13 +527,15 @@ export default function App() {
         evaluation={evaluation}
         isOpen={showEvalModal}
         onRestart={() => restartEpisode()}
-        onNextEpisode={() => restartEpisode()}
+        episode={episode}
+        onNextEpisode={() => setEpisode(e => (e === 1 ? 2 : 1))}
         onClose={() => setShowEvalModal(false)}
       />
 
       {/* Controls and Strategy Help Modal */}
       <ControlsHelpModal
         isOpen={showHelpModal}
+        episode={episode}
         onClose={() => setShowHelpModal(false)}
       />
       {mobile && portrait && (

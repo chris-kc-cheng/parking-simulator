@@ -33,8 +33,10 @@ export class ParkingEvaluator {
 
     // 1. Target Slot Bounds
     // Bay center is at (targetX, targetZ). Width across X, Length along Z
-    const halfW = this.bay.width / 2;
-    const halfL = this.bay.length / 2;
+    const parallel = !!this.bay.parallel;
+    // Parallel bays run their long side along X.
+    const halfW = (parallel ? this.bay.length : this.bay.width) / 2;
+    const halfL = (parallel ? this.bay.width : this.bay.length) / 2;
     const minX = this.bay.targetX - halfW;
     const maxX = this.bay.targetX + halfW;
     const minZ = this.bay.targetZ - halfL;
@@ -52,7 +54,8 @@ export class ParkingEvaluator {
 
     // 3. Lateral offset from center line (in cm)
     // Positive or negative distance from x = targetX
-    const lateralOffsetCm = Math.abs(state.x - this.bay.targetX) * 100;
+    const lateralOffsetCm = (parallel ? Math.abs(state.z - this.bay.targetZ) : Math.abs(state.x - this.bay.targetX)) * 100;
+    const alongOffsetM = parallel ? Math.abs(state.x - this.bay.targetX) : 0;
 
     // 4. Heading error in degrees
     // Target heading is this.bay.targetHeading (backing in, car heading should point along +Z or -Z)
@@ -64,8 +67,11 @@ export class ParkingEvaluator {
 
     // 5. Distance to curb / rear wheel stop
     // Car rear bumper Z position (when backed in with heading ~PI, rear bumper is along +Z):
+    // Parallel: gap between the curb-side corners and the curb.
     const rearBumperZ = state.z - 2.27 * Math.cos(state.heading);
-    const distanceToCurbM = Math.max(0, this.bay.curbZ - rearBumperZ);
+    const distanceToCurbM = parallel
+      ? Math.max(0, this.bay.curbZ - Math.max(...carCorners.map(c => c.z)))
+      : Math.max(0, this.bay.curbZ - rearBumperZ);
 
     // 6. Success check
     // Parked successfully when:
@@ -76,8 +82,10 @@ export class ParkingEvaluator {
     // - Lateral offset <= 30 cm
     // - Distance to curb <= 0.65m
     const isStationary = Math.abs(state.speed) < 0.05;
-    const isParkedSuccessfully =
-      state.gear === 'P' &&
+    const isParkedSuccessfully = parallel
+      ? state.gear === 'P' && isStationary && isInsideBay && headingErrorDeg <= 5 &&
+        distanceToCurbM <= 0.6 && alongOffsetM <= 1.2
+      : state.gear === 'P' &&
       isStationary &&
       isInsideBay &&
       headingErrorDeg <= 4.5 &&
@@ -97,12 +105,16 @@ export class ParkingEvaluator {
 
     // Deduct for curb distance mismatch (ideal 0.25m - 0.45m)
     let curbPenalty = 0;
-    if (distanceToCurbM > 0.45) {
-      curbPenalty = Math.min(20, (distanceToCurbM - 0.45) * 30);
-    } else if (distanceToCurbM < 0.15) {
-      curbPenalty = Math.min(20, (0.15 - distanceToCurbM) * 50);
+    const idealMax = parallel ? 0.4 : 0.45;
+    const idealMin = parallel ? 0.08 : 0.15;
+    if (distanceToCurbM > idealMax) {
+      curbPenalty = Math.min(20, (distanceToCurbM - idealMax) * 30);
+    } else if (distanceToCurbM < idealMin) {
+      curbPenalty = Math.min(20, (idealMin - distanceToCurbM) * 50);
     }
     score -= curbPenalty;
+    // Parallel: stay centred in the gap lengthwise.
+    if (parallel) score -= Math.min(15, Math.max(0, (alongOffsetM - 0.5) * 10));
 
     // Deduct for collisions
     score -= collisions * 30;
@@ -127,7 +139,9 @@ export class ParkingEvaluator {
 
     // 9. Real-time Coaching / Guidance Message
     let guidanceMessage = '';
-    if (collisions > 0) {
+    if (parallel) {
+      guidanceMessage = this.parallelGuidance(state, collisions, isParkedSuccessfully, completionPercentage, headingErrorDeg, distanceToCurbM);
+    } else if (collisions > 0) {
       guidanceMessage = 'Collision detected with obstacle! Shift to D to pull away.';
     } else if (isParkedSuccessfully) {
       guidanceMessage = 'Perfect back-in park! Vehicle securely in bay.';
@@ -183,5 +197,28 @@ export class ParkingEvaluator {
       elapsedSeconds,
       guidanceMessage,
     };
+  }
+
+  private parallelGuidance(
+    state: VehicleState, collisions: number, parked: boolean,
+    completion: number, headingErrorDeg: number, curbGap: number
+  ): string {
+    if (collisions > 0) return 'Collision! Shift to D, pull away, and try the gap again.';
+    if (parked) return 'Perfect parallel park! Snug to the curb, centred in the gap.';
+    const gapX = this.bay.targetX;
+    if (state.gear === 'P') return 'Shift to D and drive forward in the right lane toward the empty space.';
+    if (state.gear === 'D') {
+      if (state.x < gapX + 2) return 'Drive past the gap and stop beside the car ahead, about 1 m out from it.';
+      if (state.x <= gapX + 7) return 'Stop level with the car ahead, then shift to R and reverse.';
+      return 'Too far ahead. Stop and shift to R to back toward the gap.';
+    }
+    if (state.gear === 'R') {
+      if (completion < 25 && headingErrorDeg < 25) return 'Reverse slowly with the wheel full RIGHT to swing the tail toward the curb.';
+      if (headingErrorDeg > 30) return 'Keep reversing until the car is angled about 45° to the curb.';
+      if (headingErrorDeg > 8) return 'Turn the wheel full LEFT and keep backing to bring the nose in.';
+      if (curbGap > 0.6) return 'Straighten up and ease back; move closer to the curb with the rear camera.';
+      return 'Nearly there. Straighten the wheel, brake, and shift to P (Park).';
+    }
+    return 'Use D / R and mirrors to ease into the space.';
   }
 }
