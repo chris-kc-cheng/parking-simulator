@@ -1,0 +1,50 @@
+[
+  {
+    "id": "inky-unicorn",
+    "url": "https://write.hedgies.cloud/",
+    "name": "Inky Unicorn",
+    "icon": "https://write.hedgies.cloud/icons/app-192.png"
+  },
+  {
+    "id": "whack-a-math",
+    "url": "https://chris-kc-cheng.github.io/math/",
+    "name": "Whack-a-Math",
+    "icon": "https://chris-kc-cheng.github.io/math/icons/mole-192.png"
+  },
+  {
+    "id": "rabbit",
+    "url": "https://learn.hedgies.cloud/",
+    "name": "Rabbit Learning",
+    "icon": "https://learn.hedgies.cloud/rabbit-reading-logo.png"
+  },
+  {
+    "id": "songbird",
+    "url": "https://chris-kc-cheng.github.io/songbird/",
+    "name": "Songbird",
+    "icon": "https://chris-kc-cheng.github.io/songbird/assets/icons/songbird-192.png"
+  },
+  {
+    "id": "beaver",
+    "url": "https://model.hedgies.cloud/",
+    "name": "Beaver Modelling",
+    "icon": "https://model.hedgies.cloud/assets/beaver-modelling-pwa-192.png"
+  },
+  {
+    "id": "arcade",
+    "url": "https://arcade.hedgies.cloud/",
+    "name": "Arcade",
+    "icon": "https://arcade.hedgies.cloud/icons/arcade-192.png"
+  },
+  {
+    "id": "parking-simulator",
+    "url": "https://chris-kc-cheng.github.io/parking-simulator/",
+    "name": "Parking",
+    "icon": "https://chris-kc-cheng.github.io/parking-simulator/v2/icons/parking-192.png"
+  },
+  {
+    "id": "hedgies-finance",
+    "url": "https://finance.hedgies.cloud/",
+    "name": "Hedgies Finance",
+    "icon": "https://finance.hedgies.cloud/pwa-icon-192.png"
+  }
+]
