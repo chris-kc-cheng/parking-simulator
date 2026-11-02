@@ -84,7 +84,7 @@ export class ParkingEvaluator {
     const isStationary = Math.abs(state.speed) < 0.05;
     const isParkedSuccessfully = parallel
       ? state.gear === 'P' && isStationary && isInsideBay && headingErrorDeg <= 5 &&
-        distanceToCurbM <= 0.6 && alongOffsetM <= 1.2
+        distanceToCurbM <= 0.6 && alongOffsetM <= 2.0
       : state.gear === 'P' &&
       isStationary &&
       isInsideBay &&
@@ -114,7 +114,7 @@ export class ParkingEvaluator {
     }
     score -= curbPenalty;
     // Parallel: stay centred in the gap lengthwise.
-    if (parallel) score -= Math.min(15, Math.max(0, (alongOffsetM - 0.5) * 10));
+    if (parallel) score -= Math.min(15, Math.max(0, (alongOffsetM - 0.8) * 8));
 
     // Deduct for collisions
     score -= collisions * 30;
@@ -208,8 +208,8 @@ export class ParkingEvaluator {
     const gapX = this.bay.targetX;
     if (state.gear === 'P') return 'Shift to D and drive forward in the right lane toward the empty space.';
     if (state.gear === 'D') {
-      if (state.x < gapX + 2) return 'Drive past the gap and stop beside the car ahead, about 1 m out from it.';
-      if (state.x <= gapX + 7) return 'Stop level with the car ahead, then shift to R and reverse.';
+      if (state.x < gapX + 3) return 'Drive past the gap and stop beside the car ahead, about 1 m out from it.';
+      if (state.x <= gapX + 9) return 'Stop level with the car ahead, then shift to R and reverse.';
       return 'Too far ahead. Stop and shift to R to back toward the gap.';
     }
     if (state.gear === 'R') {

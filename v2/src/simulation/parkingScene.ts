@@ -40,9 +40,9 @@ export class ParkingScene {
     this.scene.fog = new THREE.FogExp2(0xbbe1fa, 0.005);
 
     this.targetBay = episode === 2
-      // Parallel space on the +Z (right-hand) curb between two parked cars: 6.5 m gap, 2.4 m wide.
+      // Parallel space on the +Z (right-hand) curb between two parked cars: 9.75 m gap, 2.4 m wide.
       ? { id: 'parallel-1', number: 1, targetX: 0, targetZ: 5.1, targetHeading: Math.PI / 2,
-          width: 2.4, length: 6.5, curbZ: 6.3, parallel: true }
+          width: 2.4, length: 9.75, curbZ: 6.3, parallel: true }
       // Target bay definition (Bay #14)
       : { id: 'bay-14', number: 14, targetX: 0, targetZ: 6.6, targetHeading: Math.PI,
           width: 3.2, length: 6.0, curbZ: 9.6 };
@@ -275,7 +275,7 @@ export class ParkingScene {
     // Target space: green guide strips along the curb-side and road-side of the gap.
     const guide = new THREE.MeshStandardMaterial({ color: 0x22c55e, emissive: 0x22c55e, emissiveIntensity: 0.9 });
     for (const z of [3.95, 6.15]) {
-      const strip = new THREE.Mesh(new THREE.BoxGeometry(6.0, 0.05, 0.14), guide);
+      const strip = new THREE.Mesh(new THREE.BoxGeometry(9.25, 0.05, 0.14), guide);
       strip.position.set(0, 0.03, z);
       this.scene.add(strip);
     }
@@ -293,12 +293,12 @@ export class ParkingScene {
     sign.position.set(0, 0.04, 5.05);
     this.scene.add(sign);
 
-    // Curbside cars facing east (with traffic); the gap is between x = -3.25 and 3.25.
+    // Curbside cars facing east (with traffic); the gap is between x = -4.875 and 4.875.
     const east = Math.PI / 2;
-    this.createParkedCar(5.5, 5.1, east, 0xf87171, 'Parked Coral Rose SUV (ahead)', true);
-    this.createParkedCar(-5.5, 5.1, east, 0xf59e0b, 'Parked Solar Gold Sedan (behind)', true);
-    this.createParkedCar(12.5, 5.1, east, 0x38bdf8, 'Parked Sky Blue Hatchback', true);
-    this.createParkedCar(-13, 5.1, east, 0xf8fafc, 'Parked Glacier White SUV', true);
+    this.createParkedCar(7.125, 5.1, east, 0xf87171, 'Parked Coral Rose SUV (ahead)', true);
+    this.createParkedCar(-7.125, 5.1, east, 0xf59e0b, 'Parked Solar Gold Sedan (behind)', true);
+    this.createParkedCar(14.125, 5.1, east, 0x38bdf8, 'Parked Sky Blue Hatchback', true);
+    this.createParkedCar(-14.625, 5.1, east, 0xf8fafc, 'Parked Glacier White SUV', true);
     // Opposite curb, facing west.
     const west = -Math.PI / 2;
     this.createParkedCar(-9, -5.1, west, 0x4ade80, 'Parked Mint Green Coupe', true);
