@@ -14,10 +14,20 @@ import { EvaluationModal } from './components/EvaluationModal';
 import { ControlsHelpModal } from './components/ControlsHelpModal';
 import { enterFullscreenLandscape, isFullscreen, useDeviceLayout } from './utils/mobile';
 import { RotateCw, Maximize } from 'lucide-react';
+import { TurnSignals, Signal } from './components/TurnSignals';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const { mobile, portrait } = useDeviceLayout();
+
+  // Auto turn signal: turning the wheel past ~30% lock switches it on; it cancels once the
+  // car has turned about 40 degrees and the wheel is straight again, or after 15 s.
+  const [signal, setSignal] = useState<Signal>(null);
+  const signalRef = useRef<{ side: 'left' | 'right'; heading: number; since: number } | null>(null);
+  const setActiveSignal = (next: typeof signalRef.current) => {
+    signalRef.current = next;
+    setSignal(next ? next.side : null);
+  };
 
   // Phones: go full screen (no browser bars) on the first touch.
   useEffect(() => {
@@ -127,6 +137,8 @@ export default function App() {
 
       setShowEvalModal(false);
       setHadRecentCollision(false);
+      signalRef.current = null;
+      setSignal(null);
     },
     []
   );
@@ -196,6 +208,21 @@ export default function App() {
         collisionCooldown -= dt;
         if (collisionCooldown <= 0) {
           setHadRecentCollision(false);
+        }
+      }
+
+      // Auto turn signal
+      {
+        const steer = inputsRef.current.steer;
+        const heading = physics.state.heading;
+        const active = signalRef.current;
+        if (Math.abs(steer) > 0.3) {
+          const side = steer < 0 ? 'left' : 'right';
+          if (active?.side !== side) setActiveSignal({ side, heading, since: currentTime });
+        } else if (active) {
+          let turned = heading - active.heading;
+          turned = Math.atan2(Math.sin(turned), Math.cos(turned));
+          if ((Math.abs(turned) > 0.7 && Math.abs(steer) < 0.1) || currentTime - active.since > 15000) setActiveSignal(null);
         }
       }
 
@@ -307,6 +334,9 @@ export default function App() {
         e.preventDefault();
         pipelineRef.current?.setLookGlance('over-shoulder-right');
         setCurrentGlance('over-shoulder-right');
+      } else if (e.code === 'KeyH') {
+        soundEngine.init();
+        soundEngine.startHorn();
       } else if (e.code === 'KeyV') {
         // Toggle Cockpit / Exterior
         e.preventDefault();
@@ -322,6 +352,7 @@ export default function App() {
 
     const handleKeyUp = (e: KeyboardEvent) => {
       activeKeys.delete(e.code);
+      if (e.code === 'KeyH') soundEngine.stopHorn();
 
       // Return to forward view upon releasing shoulder glance keys
       if (e.code === 'KeyQ' || e.code === 'KeyZ' || e.code === 'KeyE' || e.code === 'KeyC') {
@@ -408,6 +439,11 @@ export default function App() {
     }
   };
 
+  const handleHorn = (on: boolean) => {
+    soundEngine.init();
+    if (on) soundEngine.startHorn(); else soundEngine.stopHorn();
+  };
+
   const handleToggleMute = () => {
     const muted = soundEngine.toggleMute();
     setIsMuted(muted);
@@ -477,7 +513,10 @@ export default function App() {
         onSetInput={handleSetInput}
         onTogglePark={handleTogglePark}
         mobile={mobile}
+        onHorn={handleHorn}
       />
+
+      <TurnSignals signal={signal} mobile={mobile} />
 
       {/* Parking Performance Evaluation Modal */}
       <EvaluationModal

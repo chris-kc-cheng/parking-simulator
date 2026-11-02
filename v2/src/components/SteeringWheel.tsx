@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 const MAX_DEG = 135; // full lock either way
 
 // Drag around the hub to turn (clockwise = right). Springs back to centre on release.
-export const SteeringWheel: React.FC<{ onSteer: (value: number) => void }> = ({ onSteer }) => {
+export const SteeringWheel: React.FC<{ onSteer: (value: number) => void; onHorn: (on: boolean) => void }> = ({ onSteer, onHorn }) => {
   const box = useRef<HTMLDivElement>(null);
   const rot = useRef(0);
   const last = useRef<number | null>(null);
@@ -34,7 +34,7 @@ export const SteeringWheel: React.FC<{ onSteer: (value: number) => void }> = ({ 
 
   return (
     <div ref={box} role="slider" aria-label="Steering wheel" aria-valuemin={-MAX_DEG} aria-valuemax={MAX_DEG} aria-valuenow={Math.round(deg)}
-      className="m-wheel m-glass rounded-full select-none"
+      className="m-wheel m-glass rounded-full select-none relative"
       style={{ touchAction: 'none' }}
       onPointerDown={e => {
         cancelAnimationFrame(raf.current);
@@ -51,11 +51,22 @@ export const SteeringWheel: React.FC<{ onSteer: (value: number) => void }> = ({ 
       }}
       onPointerUp={release} onPointerCancel={release} onLostPointerCapture={release}>
       <svg viewBox="-50 -50 100 100" className="w-full h-full pointer-events-none" style={{ transform: `rotate(${deg}deg)` }} aria-hidden="true">
-        <circle r="44" fill="none" stroke="#e5e7eb" strokeWidth="8" />
-        <path d="M-40 4 L-12 4 M40 4 L12 4 M0 12 L0 42" stroke="#e5e7eb" strokeWidth="7" strokeLinecap="round" />
-        <circle r="12" fill="#1e3a5f" stroke="#e5e7eb" strokeWidth="3" />
+        <circle r="44" fill="none" stroke="#9ca3af" strokeWidth="10.5" />
+        <circle r="44" fill="none" stroke="#0a0a0a" strokeWidth="8" />
+        <path d="M-40 4 L-12 4 M40 4 L12 4 M0 12 L0 42" stroke="#9ca3af" strokeWidth="9.5" strokeLinecap="round" />
+        <path d="M-40 4 L-12 4 M40 4 L12 4 M0 12 L0 42" stroke="#0a0a0a" strokeWidth="7" strokeLinecap="round" />
+        <circle r="15" fill="#0a0a0a" stroke="#9ca3af" strokeWidth="1.5" />
         <rect x="-3" y="-48" width="6" height="12" rx="2" fill="#f59e0b" />
       </svg>
+      <button type="button" aria-label="Horn" title="Horn (H)"
+        className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[30%] h-[30%] rounded-full text-[8px] font-bold text-neutral-300 active:bg-neutral-700"
+        style={{ touchAction: 'none' }}
+        onPointerDown={e => { e.stopPropagation(); e.currentTarget.setPointerCapture(e.pointerId); onHorn(true); }}
+        onPointerUp={e => { e.stopPropagation(); onHorn(false); }}
+        onPointerCancel={() => onHorn(false)} onLostPointerCapture={() => onHorn(false)}
+        onContextMenu={e => e.preventDefault()}>
+        HORN
+      </button>
     </div>
   );
 };

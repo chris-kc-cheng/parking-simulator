@@ -94,23 +94,23 @@ export class RenderPipeline {
         this.targetHeadPitch = -0.05;
         break;
       case 'left-mirror':
-        this.targetHeadYaw = -0.72; // turn head towards left wing mirror
+        this.targetHeadYaw = 0.72; // turn head towards left wing mirror (+x is the car's left)
         this.targetHeadPitch = -0.08;
         break;
       case 'right-mirror':
-        this.targetHeadYaw = 0.85; // turn head towards right wing mirror
+        this.targetHeadYaw = -0.85; // turn head towards right wing mirror
         this.targetHeadPitch = -0.05;
         break;
       case 'rearview':
-        this.targetHeadYaw = 0.15;
+        this.targetHeadYaw = -0.15;
         this.targetHeadPitch = 0.22; // glance up at center rearview mirror
         break;
       case 'over-shoulder-left':
-        this.targetHeadYaw = -2.35; // Glance over driver's left shoulder looking backwards
+        this.targetHeadYaw = 2.35; // Glance over driver's left shoulder looking backwards
         this.targetHeadPitch = -0.02;
         break;
       case 'over-shoulder-right':
-        this.targetHeadYaw = 2.35; // Glance over driver's right shoulder looking backwards
+        this.targetHeadYaw = -2.35; // Glance over driver's right shoulder looking backwards
         this.targetHeadPitch = -0.02;
         break;
     }
@@ -153,7 +153,7 @@ export class RenderPipeline {
     this.parkingScene.leftMirrorMount.getWorldPosition(leftMountPos);
     this.leftMirrorCamera.position.copy(leftMountPos);
 
-    const leftMirrorYaw = carHeading + Math.PI + 0.16;
+    const leftMirrorYaw = carHeading + Math.PI - 0.16;
     this.leftMirrorCamera.lookAt(
       leftMountPos.x + Math.sin(leftMirrorYaw),
       leftMountPos.y - 0.22, // Angled down toward pavement & stall lines
@@ -165,7 +165,7 @@ export class RenderPipeline {
     this.parkingScene.rightMirrorMount.getWorldPosition(rightMountPos);
     this.rightMirrorCamera.position.copy(rightMountPos);
 
-    const rightMirrorYaw = carHeading + Math.PI - 0.16;
+    const rightMirrorYaw = carHeading + Math.PI + 0.16;
     this.rightMirrorCamera.lookAt(
       rightMountPos.x + Math.sin(rightMirrorYaw),
       rightMountPos.y - 0.22, // Angled down toward pavement & stall lines

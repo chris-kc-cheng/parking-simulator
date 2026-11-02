@@ -8,6 +8,7 @@ interface DrivingControlsProps {
   onSetInput: <K extends keyof VehicleInputs>(key: K, value: VehicleInputs[K]) => void;
   onTogglePark: () => void;
   mobile?: boolean;
+  onHorn?: (on: boolean) => void;
 }
 
 export const DrivingControls: React.FC<DrivingControlsProps> = ({
@@ -15,6 +16,7 @@ export const DrivingControls: React.FC<DrivingControlsProps> = ({
   onSetInput,
   onTogglePark,
   mobile = false,
+  onHorn = () => {},
 }) => {
   if (mobile) {
     // Thumb zones: steering bottom-left, pedals + park bottom-right. Icon-only, translucent.
@@ -33,7 +35,7 @@ export const DrivingControls: React.FC<DrivingControlsProps> = ({
     return (
       <>
         <div className="absolute z-20 pointer-events-auto select-none" style={{ ...pad, left: 'max(8px, env(safe-area-inset-left))' }}>
-          <SteeringWheel onSteer={v => onSetInput('steer', v)} />
+          <SteeringWheel onSteer={v => onSetInput('steer', v)} onHorn={onHorn} />
         </div>
         <div className="absolute z-20 pointer-events-auto flex items-end gap-2 select-none" style={{ ...pad, right: 'max(8px, env(safe-area-inset-right))' }}>
           <button type="button" aria-label="Park" title="Park" onClick={onTogglePark}

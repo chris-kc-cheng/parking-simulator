@@ -39,7 +39,7 @@ same browser-free view), and folds the navigation into a menu icon at the top
 left. The mirrors and cameras are sized to the screen so they never overlap, and
 the controls become translucent thumb controls: a draggable steering wheel at
 bottom left (turn it clockwise for right; it springs back to centre when
-released), park and forward/reverse at bottom right, shoulder looks above the wheel.
+released; press its hub for the horn), park and forward/reverse at bottom right, shoulder looks above the wheel.
 The desktop layout is unchanged.
 
 ## Other apps
@@ -58,9 +58,15 @@ and offers **Try again**.
 | Reverse | S / ↓ or on-screen Reverse |
 | Steer | A / D or ← / → or on-screen arrows |
 | Park | P / Space or on-screen Park |
+| Horn | Hold H, or the hub of the on-screen wheel |
 | Look over your shoulder | Hold Q / E |
 | Change camera | Driver Cockpit / Exterior View in the top bar |
 | Restart | Reset in the top bar |
+
+The car is left-hand drive: the driver, steering wheel and left mirror are on the
+left. Turning the wheel past about a third of full lock switches the turn signal
+on automatically, with a relay click; it cancels once you have completed the turn
+and straightened the wheel.
 
 Use the **?** help button for the driving guide. Select **V1** in the header to
 open the original game. The [main game URL](https://chris-kc-cheng.github.io/parking-simulator/)

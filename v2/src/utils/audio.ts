@@ -147,6 +147,56 @@ class SoundEngine {
     }
   }
 
+  private hornOscs: OscillatorNode[] = [];
+  private hornGain: GainNode | null = null;
+
+  // Two-tone horn, sounds while held.
+  public startHorn() {
+    if (!this.ctx || this.isMuted || this.hornGain) return;
+    try {
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.0001, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.09, this.ctx.currentTime + 0.02);
+      gain.connect(this.ctx.destination);
+      this.hornOscs = [415, 523].map(f => {
+        const osc = this.ctx!.createOscillator();
+        osc.type = 'sawtooth';
+        osc.frequency.value = f;
+        osc.connect(gain);
+        osc.start();
+        return osc;
+      });
+      this.hornGain = gain;
+    } catch { /* Ignore */ }
+  }
+
+  public stopHorn() {
+    if (!this.ctx || !this.hornGain) return;
+    const { hornGain, hornOscs } = this;
+    this.hornGain = null; this.hornOscs = [];
+    hornGain.gain.cancelScheduledValues(this.ctx.currentTime);
+    hornGain.gain.setValueAtTime(Math.max(hornGain.gain.value, 0.0001), this.ctx.currentTime);
+    hornGain.gain.exponentialRampToValueAtTime(0.0001, this.ctx.currentTime + 0.05);
+    hornOscs.forEach(o => o.stop(this.ctx!.currentTime + 0.06));
+  }
+
+  // Turn-signal relay: a sharper click on, a softer clack off.
+  public playSignalTick(on: boolean) {
+    if (!this.ctx || this.isMuted) return;
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(on ? 1900 : 1300, this.ctx.currentTime);
+      gain.gain.setValueAtTime(on ? 0.06 : 0.04, this.ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.025);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start();
+      osc.stop(this.ctx.currentTime + 0.03);
+    } catch { /* Ignore */ }
+  }
+
   public playGearShift() {
     if (!this.ctx || this.isMuted) return;
     try {

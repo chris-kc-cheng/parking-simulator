@@ -596,14 +596,15 @@ export class ParkingScene {
       sGroup.position.set(sx, 0, -0.25);
       return sGroup;
     };
-    this.carGroup.add(createSeat(-0.56)); // Driver seat on the left of cockpit
-    this.carGroup.add(createSeat(0.42)); // Passenger seat
+    this.carGroup.add(createSeat(0.56)); // Driver seat on the left (+x is the car's left)
+    this.carGroup.add(createSeat(-0.42)); // Passenger seat
 
     // STEERING WHEEL: FULLY REVEALED ON THE LEFT OF THE COCKPIT
     this.steeringWheelMesh = new THREE.Group();
+    const wheelBlackMat = new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.5 });
     const wheelRing = new THREE.Mesh(
       new THREE.TorusGeometry(0.19, 0.022, 16, 32),
-      new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6, metalness: 0.2 })
+      new THREE.MeshStandardMaterial({ color: 0x050505, roughness: 0.5, metalness: 0.1 })
     );
     this.steeringWheelMesh.add(wheelRing);
 
@@ -614,38 +615,38 @@ export class ParkingScene {
     hub.rotation.x = Math.PI / 2;
     this.steeringWheelMesh.add(hub);
 
-    const spokeH = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.035, 0.015), trimMat);
+    const spokeH = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.035, 0.015), wheelBlackMat);
     this.steeringWheelMesh.add(spokeH);
-    const spokeV = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.17, 0.015), trimMat);
+    const spokeV = new THREE.Mesh(new THREE.BoxGeometry(0.035, 0.17, 0.015), wheelBlackMat);
     spokeV.position.y = -0.07;
     this.steeringWheelMesh.add(spokeV);
 
-    // Position steering wheel on the left side of the dashboard directly in front of driver seat (x = -0.56)
-    this.steeringWheelMesh.position.set(-0.56, 0.88, 0.40);
+    // Position steering wheel on the left side of the dashboard directly in front of driver seat (x = +0.56)
+    this.steeringWheelMesh.position.set(0.56, 0.88, 0.40);
     this.steeringWheelMesh.rotation.x = -0.32;
     this.carGroup.add(this.steeringWheelMesh);
 
     // Instrument gauge cluster hood on left side of dashboard behind steering wheel
     const binnacleGeo = new THREE.BoxGeometry(0.48, 0.14, 0.28);
     const binnacle = new THREE.Mesh(binnacleGeo, darkInteriorMat);
-    binnacle.position.set(-0.56, 0.88, 0.52);
+    binnacle.position.set(0.56, 0.88, 0.52);
     this.carGroup.add(binnacle);
 
     // Mirrors Housings & Mount Points
     const mirrorHousingMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.5 });
 
     const leftMirrorHousing = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.22), mirrorHousingMat);
-    leftMirrorHousing.position.set(-1.02, 0.96, 0.58);
+    leftMirrorHousing.position.set(1.02, 0.96, 0.58);
     this.carGroup.add(leftMirrorHousing);
 
-    this.leftMirrorMount.position.set(-1.04, 0.97, 0.44);
+    this.leftMirrorMount.position.set(1.04, 0.97, 0.44);
     this.carGroup.add(this.leftMirrorMount);
 
     const rightMirrorHousing = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.14, 0.22), mirrorHousingMat);
-    rightMirrorHousing.position.set(1.02, 0.96, 0.58);
+    rightMirrorHousing.position.set(-1.02, 0.96, 0.58);
     this.carGroup.add(rightMirrorHousing);
 
-    this.rightMirrorMount.position.set(1.04, 0.97, 0.44);
+    this.rightMirrorMount.position.set(-1.04, 0.97, 0.44);
     this.carGroup.add(this.rightMirrorMount);
 
     const rearviewHousing = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.08, 0.05), mirrorHousingMat);
@@ -658,8 +659,8 @@ export class ParkingScene {
     this.backupCamMount.position.set(0, 0.78, -2.36);
     this.carGroup.add(this.backupCamMount);
 
-    // Driver Eye Position: Clearly on the LEFT of the car (x = -0.56, y = 1.18, z = -0.15)
-    this.driverHeadMount.position.set(-0.56, 1.18, -0.15);
+    // Driver Eye Position: Left-hand drive: the car's left is +x (x = 0.56, y = 1.18, z = -0.15)
+    this.driverHeadMount.position.set(0.56, 1.18, -0.15);
     this.carGroup.add(this.driverHeadMount);
 
     // Lights

@@ -18,8 +18,9 @@ export const MirrorWidgets: React.FC<MirrorWidgetsProps> = ({
   if (!visible) return null;
 
   // Blind spot radar warning triggers when obstacle is nearby on side
-  const leftBsmActive = sonar.rearLeft < 2.0 || sonar.frontLeft < 1.4;
-  const rightBsmActive = sonar.rearRight < 2.0 || sonar.frontRight < 1.4;
+  // Sonar sides are named from the opposite orientation to the car's left/right, so they swap here.
+  const leftBsmActive = sonar.rearRight < 2.0 || sonar.frontRight < 1.4;
+  const rightBsmActive = sonar.rearLeft < 2.0 || sonar.frontLeft < 1.4;
 
   return (
     <>
@@ -55,8 +56,8 @@ export const MirrorWidgets: React.FC<MirrorWidgetsProps> = ({
         </div>
       </div>
 
-      {/* 2. Left Side Wing Mirror (Position swapped to right side of screen as requested) */}
-      <div className={`absolute z-20 pointer-events-auto select-none ${mobile ? 'top-14 right-2' : 'top-24 right-4'}`}>
+      {/* 2. Left Side Wing Mirror (left side of screen, matching the left-hand-drive seat) */}
+      <div className={`absolute z-20 pointer-events-auto select-none ${mobile ? 'top-14 left-2' : 'top-24 left-4'}`}>
         <div className="relative group p-1 bg-transparent rounded-2xl border-4 border-neutral-700/80 shadow-2xl ring-1 ring-white/25">
           <div
             id="left-mirror-viewport"
@@ -97,8 +98,8 @@ export const MirrorWidgets: React.FC<MirrorWidgetsProps> = ({
         </div>
       </div>
 
-      {/* 3. Right Side Wing Mirror (Position swapped to left side of screen as requested) */}
-      <div className={`absolute z-20 pointer-events-auto select-none ${mobile ? 'top-14 left-2' : 'top-24 left-4'}`}>
+      {/* 3. Right Side Wing Mirror (right side of screen) */}
+      <div className={`absolute z-20 pointer-events-auto select-none ${mobile ? 'top-14 right-2' : 'top-24 right-4'}`}>
         <div className="relative group p-1 bg-transparent rounded-2xl border-4 border-neutral-700/80 shadow-2xl ring-1 ring-white/25">
           <div
             id="right-mirror-viewport"
