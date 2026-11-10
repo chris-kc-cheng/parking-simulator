@@ -144,11 +144,12 @@ The root redirect needs a network connection; use the installed app or /v2/ offl
 
 ## Platform app switcher
 
-The header's nine-dot launcher reads `https://hedgies.cloud/app.json` on open.
+The header's nine-dot launcher uses the public Hedgies infrastructure registry at
+`https://apps.hedgies.cloud/app.json` and fetches it without credentials.
 `platformApps.ts` excludes the stable ID `parking-simulator` independently of the
 current host or URL. Apps open in new tabs. There is no hard-coded app/icon list.
 
-GitHub Pages has no server proxy and the registry currently lacks CORS headers.
+The registry does not allow cross-origin requests from GitHub Pages.
 `scripts/platform-apps.mjs` therefore resolves the live registry and each app's
 page/manifest at build time into `dist/v2/apps.json`. The browser tries the live
 URL, then this same-origin copy. `.github/workflows/refresh-apps.yml` refreshes

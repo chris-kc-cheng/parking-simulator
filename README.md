@@ -44,7 +44,7 @@ The desktop layout is unchanged.
 
 ## Other apps
 
-The **nine-dot Apps button** at the top right opens the platform app list from the live registry.
+The **nine-dot Apps button** at the top right opens the shared Hedgies app list.
 Choose an app to open it in a new tab. Parking excludes itself by its registry ID. On this static site, registry
 changes are refreshed automatically about every 15 minutes.
 If the list is temporarily unavailable, the switcher retains its last saved list

@@ -1,5 +1,5 @@
 export const APP_ID = 'parking-simulator';
-export const APPS_URL = import.meta.env.VITE_APPS_URL || 'https://hedgies.cloud/app.json';
+export const APPS_URL = import.meta.env.VITE_APPS_URL || 'https://apps.hedgies.cloud/app.json';
 export type PlatformApp = { id: string; url: string; name: string; icon: string | null };
 const CACHE_KEY = 'parking-platform-apps-v1';
 

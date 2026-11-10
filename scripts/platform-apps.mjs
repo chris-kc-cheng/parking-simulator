@@ -3,7 +3,7 @@ import { isIP } from 'node:net';
 import { writeFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
 
-const REGISTRY = 'https://hedgies.cloud/app.json';
+const REGISTRY = 'https://apps.hedgies.cloud/app.json';
 const MAX_BYTES = 512_000;
 function privateIP(ip) {
   if (isIP(ip) === 6) return !ip.startsWith('2') && !ip.startsWith('3');

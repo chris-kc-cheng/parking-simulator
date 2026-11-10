@@ -9,10 +9,16 @@ const root = resolve('dist');
 const mime = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.ico': 'image/x-icon', '.webmanifest': 'application/manifest+json' };
 // Serve under a repository prefix to catch asset paths that break on Pages.
 const prefix = '/parking-simulator';
+const registryURL = 'https://apps.hedgies.cloud/app.json';
 const server = createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     if (!url.pathname.startsWith(`${prefix}/`)) { res.writeHead(404).end(); return; }
+    if (url.pathname === `${prefix}/v2/apps.json`) {
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify([{ id: 'beaver', url: 'https://model.example/', name: 'Beaver', icon: 'https://example.com/beaver.png' }]));
+      return;
+    }
     let path = resolve(root, `.${decodeURIComponent(url.pathname.slice(prefix.length))}`);
     if (!path.startsWith(`${root}${sep}`) && path !== root) { res.writeHead(403).end(); return; }
     if ((await stat(path)).isDirectory()) {
@@ -37,7 +43,7 @@ try {
     { id: 'writing', url: 'https://write.example/', name: 'Writing', icon: 'https://example.com/writing.png' },
     { id: 'math', url: 'https://math.example/', name: 'Math', icon: 'https://example.com/math.png' },
   ];
-  await page.route('https://hedgies.cloud/app.json', route => route.fulfill({ json: registry }));
+  await page.route(registryURL, route => route.fulfill({ json: registry }));
   await page.route('https://example.com/*.png', route => route.abort());
 
   page.on('pageerror', error => errors.push(error.message));
@@ -55,10 +61,10 @@ try {
   await page.keyboard.press('Escape');
   assert.equal(await menu.count(), 0);
   // CORS/network failure uses the independently refreshed same-origin list.
-  await page.route('https://hedgies.cloud/app.json', route => route.abort());
-  await page.route('**/v2/apps.json', route => route.fulfill({ json: registry }));
+  await page.route(registryURL, route => route.abort());
   await page.getByRole('button', { name: 'Apps', exact: true }).click();
-  await menu.getByRole('menuitem', { name: /Math/ }).waitFor();
+  await menu.getByRole('menuitem', { name: /Beaver/ }).waitFor();
+  assert.equal(await menu.getByRole('menuitem').count(), 1);
   await page.keyboard.press('Escape');
   await page.getByRole('button', { name: 'Exterior View', exact: true }).click();
   await page.getByRole('button', { name: 'Driver Cockpit', exact: true }).click();
