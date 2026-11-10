@@ -1,0 +1,31 @@
+{
+  "id": "./",
+  "name": "Parking",
+  "short_name": "Parking",
+  "description": "Practice mirror checks and parking clearance in Parking Simulator.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#031a40",
+  "theme_color": "#031a40",
+  "icons": [
+    {
+      "src": "icons/parking-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/parking-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icons/parking-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
